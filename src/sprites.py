@@ -87,3 +87,30 @@ class MovingSprite(Sprite):
             if self.rect.top <= self.start_pos[1] and self.direction.y == -1:
                 self.direction.y = 1
                 self.rect.top = self.start_pos[1]
+
+
+class AnimatedSprite(Sprite):
+    """Sprite that is animated"""
+    def __init__(self, pos, frames, group, pos_z=settings.LAYERS_DEPTH["main"], animation_speed=8):
+        """Initialized the animated sprite"""
+        # Animation frames
+        self.frames = frames
+        # Current frame
+        self.frame = 0
+
+        # Initialize the parent Sprite with the first frame
+        super().__init__(pos, self.frames[self.frame], group, pos_z)
+
+        # Speed of the animation
+        self.animation_speed = animation_speed
+
+    def _animate(self, delta_time):
+        """Animate the sprite"""
+        # Increase the current frame
+        self.frame += self.animation_speed * delta_time
+        # Update the image based off the frame
+        self.image = self.frames[int(self.frame % len(self.frames))]
+
+    def update(self, delta_time):
+        """Update the animation"""
+        self._animate(delta_time)

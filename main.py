@@ -24,11 +24,14 @@ class Game:
         # FPS timer
         self.timer = pygame.time.Clock()
 
+        # Import assets
+        self._get_assets()
+
         # Load the maps
         self.maps = {0: load_pygame(path_join(settings.BASE_PATH, "../data/levels/omni.tmx"))}
 
         # Current level
-        self.current_level = Level(self.maps[0])
+        self.current_level = Level(self.maps[0], self.level_frames)
 
     def run(self):
         """Run the game"""
@@ -64,7 +67,22 @@ class Game:
 
     def _get_assets(self):
         """Load and store the assets"""
-        pass
+        # Animation frames needed for a level
+        self.level_frames = {
+            # General frames
+            "flag": utilities.load_folder("../graphics/level/flag"),
+            # Enemies
+            "saw": utilities.load_folder("../graphics/enemies/saw/animation"),
+            "floor_spike": utilities.load_folder("../graphics/enemies/floor_spikes"),
+            # Other objects
+            "palms": utilities.load_subfolders("../graphics/level/palms"),
+            # Background details
+            "candle": utilities.load_folder("../graphics/level/candle"),
+            "candle_light": utilities.load_folder("../graphics/level/candle light"),
+            "window": utilities.load_folder("../graphics/level/window"),
+            "big_chain": utilities.load_folder("../graphics/level/big_chains"),
+            "small_chain": utilities.load_folder("../graphics/level/small_chains"),
+        }
 
 
 # If it's a main file, run the game

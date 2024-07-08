@@ -64,7 +64,6 @@ class Utilities:
             if folders:
                 # Search every one of them, save its path
                 for folder in folders:
-                    print(path + '/' + folder)
                     # Load it into dictionary
                     frames_dict[folder] = self.load_folder(path + '/' + folder)
 
