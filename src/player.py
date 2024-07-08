@@ -1,6 +1,8 @@
 import pygame
 from pygame.math import Vector2 as vector
 
+from src.timer import Timer
+
 
 class Player(pygame.sprite.Sprite):
     """The player character of the game"""
@@ -33,6 +35,12 @@ class Player(pygame.sprite.Sprite):
         # Jump height
         self.jump_power = 800
 
+        # Player timers
+        self.timers = {
+            "wall_jump": Timer(500),
+            "block_wall_jump": Timer(300)
+        }
+
         # Collisions with surface that affect jumping, sliding
         self.collisions = {"down": False, "left": False, "right": False}
 
@@ -41,41 +49,44 @@ class Player(pygame.sprite.Sprite):
 
     def update(self, delta_time):
         """Update the player"""
-        # Handle input
-        self._input()
-        # Check for collision contacts
-        self._check_contact()
-        # Move him
-        self._move(delta_time)
-
-
-    def _input(self):
-        """Get player's related input"""
         # Store last player's rectangle
         self.last_rect = self.rect.copy()
 
+        # Update time on timers
+        self._update_timers()
+
+        # Handle input
+        self._input()
+        # Move him
+        self._move(delta_time)
+        # Check for collision contacts
+        self._check_contact()
+
+    def _input(self):
+        """Get player's related input"""
         # Get the keys pressed
         keys = pygame.key.get_pressed()
 
         # Create a vector to store his new direction
         new_direction = vector(0, 0)
 
-        # If user's pressed left, change player's direction to the left
-        if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-            new_direction.x -= 1
-        # Move to the right
-        if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-            new_direction.x += 1
+        if not self.timers["wall_jump"].active:
+            # If user's pressed left, change player's direction to the left
+            if keys[pygame.K_LEFT] or keys[pygame.K_a]:
+                new_direction.x -= 1
+            # Move to the right
+            if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
+                new_direction.x += 1
+
+            # Save new horizontal direction, normalize it for only speed variable to influence the speed of player
+            if new_direction.x:
+                self.direction.x = new_direction.normalize().x
+            # Only normalize it if movement was done (can't normalize vector with a length of 0)
+            else:
+                self.direction.x = new_direction.x
 
         if keys[pygame.K_UP] or keys[pygame.K_w] or keys[pygame.K_SPACE]:
             self.jump = True
-
-        # Save new horizontal direction, normalize it for only speed variable to influence the speed of player
-        if new_direction.x:
-            self.direction.x = new_direction.normalize().x
-        # Only normalize it if movement was done (can't normalize vector with a length of 0)
-        else:
-            self.direction.x = new_direction.x
 
     def _move(self, delta_time):
         """Move the player"""
@@ -85,7 +96,8 @@ class Player(pygame.sprite.Sprite):
         self._check_collisions("horizontal")
 
         # Check if player is wall sliding (isn't on the floor but touches left or right wall)
-        if not (self.collisions["down"]) and any((self.collisions["left"], self.collisions["right"])):
+        if not (self.collisions["down"]) and any((self.collisions["left"], self.collisions["right"]))\
+                and not self.timers["block_wall_jump"].active:
             # Reset the direction
             self.direction.y = 0
             # Set it to falling slowly
@@ -93,7 +105,6 @@ class Player(pygame.sprite.Sprite):
 
         # Otherwise apply normal gravity
         else:
-            print("A")
             # Apply gravity to the direction
             self.direction.y += self.gravity / 2 * delta_time
             # Move him vertically
@@ -106,6 +117,22 @@ class Player(pygame.sprite.Sprite):
             # If player has down collision, meaning he is standing on something, allow him to jump
             if self.collisions["down"]:
                 self.direction.y = -self.jump_power
+                self.rect.y += self.direction.y * delta_time
+                # Start the timer to bloc him from wall jumping
+                self.timers["block_wall_jump"].start()
+
+            # If player touches the wall in air and there isn't a wall jump block time, allow him to jump
+            elif (any((self.collisions["left"], self.collisions["right"]))
+                  and not self.timers["block_wall_jump"].active):
+                # Start the wall jump timer
+                self.timers["wall_jump"].start()
+
+                # Increase player's direction to the top, save it to the rectangle
+                self.direction.y = -self.jump_power
+                self.rect.y += self.direction.y * delta_time
+                # Apply negative to the current direction
+                self.direction.x = 1 if self.collisions["left"] else -1
+
             # Disable multi-jumping
             self.jump = False
 
@@ -169,4 +196,7 @@ class Player(pygame.sprite.Sprite):
         # Check and set left ones
         self.collisions["left"] = True if left_rect.collidelist(collide_rects) >= 0 else False
 
-        print(self.collisions)
+    def _update_timers(self):
+        """Update all the timers"""
+        for timer in self.timers.values():
+            timer.update()

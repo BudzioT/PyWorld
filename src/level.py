@@ -55,3 +55,22 @@ class Level:
             # If this object is a player, create him
             if obj.name == "player":
                 Player((obj.x, obj.y), self.sprites, self.collision_sprites)
+
+        # Objects that can move
+        for obj in level_map.get_layer_by_name("Moving Objects"):
+            # If object is a helicopter platform
+            if obj.name == "helicopter":
+                # If its width is greater than its height, it is a horizontal-moving platform
+                if obj.width > obj.height:
+                    direction = 'x'
+                    # Calculate middle horizontal start and end position of the platform
+                    start_pos = (obj.x, obj.y + obj.height / 2)
+                    end_pos = (obj.x + obj.width, obj.y + obj.height / 2)
+                # Otherwise it's a vertical one
+                else:
+                    direction = 'y'
+                    # Get the middle vertical start and end position of the platform
+                    start_pos = (obj.x + obj.width / 2, obj.y)
+                    end_pos = (obj.x + obj.width / 2, obj.y + obj.height)
+                # Save speed from platform's properties
+                speed = obj.properties["speed"]
