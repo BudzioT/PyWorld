@@ -71,11 +71,15 @@ class Game:
         self.level_frames = {
             # General frames
             "flag": utilities.load_folder("../graphics/level/flag"),
+            # Player
+            "player": utilities.load_subfolders("../graphics/player"),
             # Enemies
             "saw": utilities.load_folder("../graphics/enemies/saw/animation"),
             "floor_spike": utilities.load_folder("../graphics/enemies/floor_spikes"),
             # Other objects
             "palms": utilities.load_subfolders("../graphics/level/palms"),
+            "helicopter": utilities.load_folder("../graphics/level/helicopter"),
+            "boat": utilities.load_folder("../graphics/objects/boat"),
             # Background details
             "candle": utilities.load_folder("../graphics/level/candle"),
             "candle_light": utilities.load_folder("../graphics/level/candle light"),

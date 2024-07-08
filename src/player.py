@@ -8,15 +8,27 @@ from src.settings import settings
 
 class Player(pygame.sprite.Sprite):
     """The player character of the game"""
-    def __init__(self, pos, group, collision_sprites, semi_collision_sprites):
+    def __init__(self, pos, frames, group, collision_sprites, semi_collision_sprites):
         """Initialize the player"""
         super().__init__(group)
 
         # Grab game's surface
         self.surface = pygame.display.get_surface()
 
+        # Save the player animation frames, set the current frame
+        self.frames = frames
+        self.frame = 0
+
+        # His current state
+        self.state = "idle"
+        # Flip player horizontally flag
+        self.flip = False
+
+        # Attack flag
+        self.attack = False
+
         # Get player's image
-        self.image = utilities.load("../graphics/player/idle/0.png")
+        self.image = self.frames[self.state][self.frame]
 
         # Get his rectangle
         self.rect = self.image.get_frect(topleft=pos)
@@ -45,7 +57,8 @@ class Player(pygame.sprite.Sprite):
         self.timers = {
             "wall_jump": Timer(500),
             "block_wall_jump": Timer(300),
-            "platform_skip": Timer(100)
+            "platform_skip": Timer(100),
+            "attack": Timer(600)
         }
 
         # Collisions with surface that affect jumping, sliding
@@ -78,6 +91,11 @@ class Player(pygame.sprite.Sprite):
         # Check for collision contacts
         self._check_contact()
 
+        # Update player's state
+        self._update_state()
+        # Animate him
+        self._animate(delta_time)
+
     def _input(self):
         """Get player's related input"""
         # Get the keys pressed
@@ -90,12 +108,20 @@ class Player(pygame.sprite.Sprite):
             # If user's pressed left, change player's direction to the left
             if keys[pygame.K_LEFT] or keys[pygame.K_a]:
                 new_direction.x -= 1
+                # Flip the player, so he's facing left
+                self.flip = True
             # Move to the right
             if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
                 new_direction.x += 1
+                # Reset the flip flag
+                self.flip = False
             # Skip through the platform
             if keys[pygame.K_DOWN] or keys[pygame.K_s]:
                 self.timers["platform_skip"].start()
+
+            # Attack on K or X pressed
+            if keys[pygame.K_k] or keys[pygame.K_x]:
+                self._attack()
 
             # Save new horizontal direction, normalize it for only speed variable to influence the speed of player
             if new_direction.x:
@@ -251,6 +277,18 @@ class Player(pygame.sprite.Sprite):
             if sprite.rect.colliderect(down_rect):
                 self.platform = sprite
 
+    def _attack(self):
+        """Make the player attack"""
+        # If the attack cooldown passed, handle the attack action
+        if not self.timers["attack"].active:
+            # Set the attack flag
+            self.attack = True
+            # Set the frame to the first one
+            self.frame = 0
+
+            # Activate the attack cooldown
+            self.timers["attack"].start()
+
     def _move_platform(self, delta_time):
         """Move when player's on the platform"""
         # If player's on the platform, move him with it
@@ -261,3 +299,46 @@ class Player(pygame.sprite.Sprite):
         """Update all the timers"""
         for timer in self.timers.values():
             timer.update()
+
+    def _update_state(self):
+        """Update the player's state"""
+        # If player is on the ground set the idle animation or the run one
+        if self.collisions["down"]:
+            # If he attacks on floor, set the attack animation
+            if self.attack:
+                self.state = "attack"
+            else:
+                # If player's horizontal direction isn't equal to 0, set his state to run
+                self.state = "idle" if self.direction.x == 0 else "run"
+
+        else:
+            # If he attacks in the air, set the proper action
+            if self.attack:
+                self.state = "air_attack"
+            else:
+                # If player is in the air, and he touches a wall, set his state to wall sliding
+                if any((self.collisions["left"], self.collisions["right"])):
+                    self.state = "wall"
+                # Otherwise if he's vertical direction drops, set it to fall and if not, to jump
+                else:
+                    self.state = "jump" if self.direction.y < 0 else "fall"
+
+    def _animate(self, delta_time):
+        """Animate the player"""
+        # Increase the current frame
+        self.frame += settings.ANIMATION_SPEED * delta_time
+
+        # If player is attacking and his animation passed, set it back to idle
+        if self.state == "attack" and self.frame >= len(self.frames[self.state]):
+            self.state = "idle"
+
+        # Change player's image based off the frame
+        self.image = self.frames[self.state][int(self.frame % len(self.frames[self.state]))]
+
+        # If player is facing left, flip his image horizontally
+        if self.flip:
+            self.image = pygame.transform.flip(self.image, True, False)
+
+        # If player is attacking and the frames ended, set the attack flag back to False
+        if self.attack and self.frame >= len(self.frames[self.state]):
+            self.attack = False

@@ -68,9 +68,9 @@ class Level:
             # If it's a background tile, set it as one
             if layer == "BG":
                 pos_z = settings.LAYERS_DEPTH["bg_tiles"]
-            # Set foreground as it
+            # Set foreground as background
             elif layer == "FG":
-                pos_z = settings.LAYERS_DEPTH["fg"]
+                pos_z = settings.LAYERS_DEPTH["bg_tiles"]
             # Otherwise just set it as main
             else:
                 pos_z = settings.LAYERS_DEPTH["main"]
@@ -94,7 +94,6 @@ class Level:
                 Sprite((obj.x, obj.y), obj.image, self.sprites, settings.LAYERS_DEPTH["bg_tiles"])
             # Otherwise create animated ones
             else:
-                print(obj.name)
                 AnimatedSprite((obj.x, obj.y), level_frames[obj.name], self.sprites,
                                settings.LAYERS_DEPTH["bg_tiles"])
                 # If it was a candle, draw a light on top of it and move it back and up a little, to center it
@@ -106,7 +105,7 @@ class Level:
         for obj in level_map.get_layer_by_name("Objects"):
             # If this object is a player, create him
             if obj.name == "player":
-                self.player = Player((obj.x, obj.y), self.sprites,
+                self.player = Player((obj.x, obj.y), level_frames["player"], self.sprites,
                                      self.collision_sprites, self.semi_collision_sprites)
             # Otherwise, if the object is some tile
             else:
@@ -156,8 +155,19 @@ class Level:
 
         # Objects that can move
         for obj in level_map.get_layer_by_name("Moving Objects"):
-            # If object is a helicopter platform
-            if obj.name == "helicopter":
+            if obj.name == "spike":
+                pass
+            else:
+                # Animation frames of moving objects
+                frames = level_frames[obj.name]
+
+                # If object is a platform, set it to semi collide-able one
+                if obj.properties["platform"]:
+                    groups = (self.sprites, self.semi_collision_sprites)
+                # Otherwise make it a sprite that attacks the player
+                else:
+                    groups = (self.sprites, self.damage_sprites)
+
                 # If its width is greater than its height, it is a horizontal-moving platform
                 if obj.width > obj.height:
                     direction = 'x'
@@ -174,4 +184,16 @@ class Level:
                 speed = obj.properties["speed"]
 
                 # Create the moving platform sprite
-                MovingSprite(start_pos, end_pos, direction, speed, (self.sprites, self.semi_collision_sprites))
+                MovingSprite(start_pos, end_pos, frames, direction, speed, groups)
+
+                # If it's a saw, draw its path
+                if obj.name == "saw":
+                    # If it moves horizontally, handle it that way
+                    if direction == 'x':
+                        # Save saw's vertical position, it stays the same
+                        pos_y = start_pos[1]
+                        # Save the left and right side of saw's track
+                        left = int(start_pos[0])
+                        right = int(end_pos[0])
+                        # Create the path
+                        

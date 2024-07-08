@@ -23,15 +23,39 @@ class Sprite(pygame.sprite.Sprite):
         self.pos_z = pos_z
 
 
-class MovingSprite(Sprite):
-    """Sprite that can move"""
-    def __init__(self, start_pos, end_pos, direction, speed, group):
-        """Initialize the sprite"""
-        # Create temp surface
-        surface = pygame.Surface((200, 50))
+class AnimatedSprite(Sprite):
+    """Sprite that is animated"""
+    def __init__(self, pos, frames, group, pos_z=settings.LAYERS_DEPTH["main"], animation_speed=8):
+        """Initialized the animated sprite"""
+        # Animation frames
+        self.frames = frames
+        # Current frame
+        self.frame = 0
 
+        # Initialize the parent Sprite with the first frame
+        super().__init__(pos, self.frames[self.frame], group, pos_z)
+
+        # Speed of the animation
+        self.animation_speed = animation_speed
+
+    def _animate(self, delta_time):
+        """Animate the sprite"""
+        # Increase the current frame
+        self.frame += self.animation_speed * delta_time
+        # Update the image based off the frame
+        self.image = self.frames[int(self.frame % len(self.frames))]
+
+    def update(self, delta_time):
+        """Update the animation"""
+        self._animate(delta_time)
+
+
+class MovingSprite(AnimatedSprite):
+    """Sprite that can move"""
+    def __init__(self, start_pos, end_pos, frames, direction, speed, group):
+        """Initialize the sprite"""
         # Initialize the general sprite
-        super().__init__(start_pos, surface, group)
+        super().__init__(start_pos, frames, group)
 
         # Set its correct position
         if direction == 'x':
@@ -64,6 +88,9 @@ class MovingSprite(Sprite):
         # Bounce it if needed
         self._bounce()
 
+        # Anime the sprite
+        self._animate(delta_time)
+
     def _bounce(self):
         """Bounce the sprite when reaching starting and ending positions"""
         # If the direction is horizontal, handle horizontal bouncing
@@ -87,30 +114,3 @@ class MovingSprite(Sprite):
             if self.rect.top <= self.start_pos[1] and self.direction.y == -1:
                 self.direction.y = 1
                 self.rect.top = self.start_pos[1]
-
-
-class AnimatedSprite(Sprite):
-    """Sprite that is animated"""
-    def __init__(self, pos, frames, group, pos_z=settings.LAYERS_DEPTH["main"], animation_speed=8):
-        """Initialized the animated sprite"""
-        # Animation frames
-        self.frames = frames
-        # Current frame
-        self.frame = 0
-
-        # Initialize the parent Sprite with the first frame
-        super().__init__(pos, self.frames[self.frame], group, pos_z)
-
-        # Speed of the animation
-        self.animation_speed = animation_speed
-
-    def _animate(self, delta_time):
-        """Animate the sprite"""
-        # Increase the current frame
-        self.frame += self.animation_speed * delta_time
-        # Update the image based off the frame
-        self.image = self.frames[int(self.frame % len(self.frames))]
-
-    def update(self, delta_time):
-        """Update the animation"""
-        self._animate(delta_time)
