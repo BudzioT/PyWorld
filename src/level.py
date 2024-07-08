@@ -3,6 +3,7 @@ import pygame
 from src.settings import settings
 from src.sprites import Sprite, MovingSprite
 from src.player import Player
+from src.groups import Sprites
 
 
 class Level:
@@ -13,7 +14,7 @@ class Level:
         self.surface = pygame.display.get_surface()
 
         # All sprites group
-        self.sprites = pygame.sprite.Group()
+        self.sprites = Sprites()
         # Sprites that collide
         self.collision_sprites = pygame.sprite.Group()
         # Semi collision sprites
@@ -24,11 +25,11 @@ class Level:
 
     def run(self, delta_time):
         """Run the level"""
-        # Draw things
-        self._update_surface()
-
         # Update the level elements
         self._update_pos(delta_time)
+
+        # Draw things
+        self._update_surface()
 
     def _update_surface(self):
         """Update level's surface"""
@@ -36,7 +37,7 @@ class Level:
         self.surface.fill("gray")
 
         # Draw all sprites
-        self.sprites.draw(self.surface)
+        self.sprites.draw(self.player.hitbox_rect)
 
     def _update_pos(self, delta_time):
         """Update position of all level elements"""
@@ -45,6 +46,11 @@ class Level:
 
     def _initialize(self, level_map):
         """Initialize the map"""
+
+        # Go through each layer and import it
+        for layer in ["BG", "Terrain", "FG", "Platforms"]:
+            for pos_x, pos_y, surface in level_map.get_layer_by_name(layer).tiles():
+                Sprite()
 
         # Go through each terrain tiles and get its position as well as the surface
         for pos_x, pos_y, surface in level_map.get_layer_by_name("Terrain").tiles():
@@ -56,7 +62,8 @@ class Level:
         for obj in level_map.get_layer_by_name("Objects"):
             # If this object is a player, create him
             if obj.name == "player":
-                Player((obj.x, obj.y), self.sprites, self.collision_sprites, self.semi_collision_sprites)
+                self.player = Player((obj.x, obj.y), self.sprites,
+                                     self.collision_sprites, self.semi_collision_sprites)
 
         # Objects that can move
         for obj in level_map.get_layer_by_name("Moving Objects"):

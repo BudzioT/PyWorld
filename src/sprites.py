@@ -12,8 +12,6 @@ class Sprite(pygame.sprite.Sprite):
 
         # Get the surface
         self.image = surface
-        # Fill it with white color for test
-        self.image.fill("white")
 
         # Get its rectangle as float for precision
         self.rect = self.image.get_frect(topleft=pos)

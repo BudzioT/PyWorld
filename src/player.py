@@ -2,6 +2,7 @@ import pygame
 from pygame.math import Vector2 as vector
 
 from src.timer import Timer
+from src.utilities import utilities
 
 
 class Player(pygame.sprite.Sprite):
@@ -14,14 +15,15 @@ class Player(pygame.sprite.Sprite):
         self.surface = pygame.display.get_surface()
 
         # Get player's image
-        self.image = pygame.Surface((48, 56))
-        # Fill it in red temporary
-        self.image.fill("red")
+        self.image = utilities.load("../graphics/player/idle/0.png")
 
         # Get his rectangle
         self.rect = self.image.get_frect(topleft=pos)
+        # Get his hitbox rectangle
+        self.hitbox_rect = self.rect.inflate(-76, -36)
+
         # Copy his last rectangle (for better collisions)
-        self.last_rect = self.rect.copy()
+        self.last_rect = self.hitbox_rect.copy()
 
         # Vector of direction of the player
         self.direction = vector()
@@ -38,7 +40,8 @@ class Player(pygame.sprite.Sprite):
         # Player timers
         self.timers = {
             "wall_jump": Timer(500),
-            "block_wall_jump": Timer(300)
+            "block_wall_jump": Timer(300),
+            "platform_skip": Timer(350)
         }
 
         # Collisions with surface that affect jumping, sliding
@@ -47,7 +50,7 @@ class Player(pygame.sprite.Sprite):
         # Sprites that player can collide with
         self.collision_sprites = collision_sprites
         # Semi collisions sprites, that player can only collide with on top of them
-        self.semi_collision_sprites = pygame.sprite.Group()
+        self.semi_collision_sprites = semi_collision_sprites
 
         # Platform that player's on
         self.platform = None
@@ -55,7 +58,7 @@ class Player(pygame.sprite.Sprite):
     def update(self, delta_time):
         """Update the player"""
         # Store last player's rectangle
-        self.last_rect = self.rect.copy()
+        self.last_rect = self.hitbox_rect.copy()
 
         # Update time on timers
         self._update_timers()
@@ -86,6 +89,9 @@ class Player(pygame.sprite.Sprite):
             # Move to the right
             if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
                 new_direction.x += 1
+            # Skip through the platform
+            if keys[pygame.K_DOWN] or keys[pygame.K_s]:
+                self.timers["platform_skip"].start()
 
             # Save new horizontal direction, normalize it for only speed variable to influence the speed of player
             if new_direction.x:
@@ -100,7 +106,7 @@ class Player(pygame.sprite.Sprite):
     def _move(self, delta_time):
         """Move the player"""
         # Move the player horizontally
-        self.rect.x += self.direction.x * self.speed * delta_time
+        self.hitbox_rect.x += self.direction.x * self.speed * delta_time
         # Check and handle horizontal collisions
         self._check_collisions("horizontal")
 
@@ -110,14 +116,14 @@ class Player(pygame.sprite.Sprite):
             # Reset the direction
             self.direction.y = 0
             # Set it to falling slowly
-            self.rect.y += self.gravity / 10 * delta_time
+            self.hitbox_rect.y += self.gravity / 10 * delta_time
 
         # Otherwise apply normal gravity
         else:
             # Apply gravity to the direction
             self.direction.y += self.gravity / 2 * delta_time
             # Move him vertically
-            self.rect.y += self.direction.y * delta_time
+            self.hitbox_rect.y += self.direction.y * delta_time
             # Change the direction again
             self.direction.y += self.gravity / 2 * delta_time
 
@@ -126,12 +132,12 @@ class Player(pygame.sprite.Sprite):
             # If player has down collision, meaning he is standing on something, allow him to jump
             if self.collisions["down"]:
                 self.direction.y = -self.jump_power
-                self.rect.y += self.direction.y * delta_time
+                self.hitbox_rect.y += self.direction.y * delta_time
 
                 # Start the timer to bloc him from wall jumping
                 self.timers["block_wall_jump"].start()
                 # Move the player up a little, so the moving platforms doesn't absorb the player
-                self.rect.bottom -= 1
+                self.hitbox_rect.bottom -= 1
 
             # If player touches the wall in air and there isn't a wall jump block time, allow him to jump
             elif (any((self.collisions["left"], self.collisions["right"]))
@@ -141,7 +147,7 @@ class Player(pygame.sprite.Sprite):
 
                 # Increase player's direction to the top, save it to the rectangle
                 self.direction.y = -self.jump_power
-                self.rect.y += self.direction.y * delta_time
+                self.hitbox_rect.y += self.direction.y * delta_time
                 # Apply negative to the current direction
                 self.direction.x = 1 if self.collisions["left"] else -1
 
@@ -153,69 +159,78 @@ class Player(pygame.sprite.Sprite):
         # Check for semi collisions
         self._check_semi_collisions()
 
+        # Update player's position based off the hitboxes
+        self.rect.center = self.hitbox_rect.center
+
     def _check_collisions(self, direction):
         """Check and handle collisions"""
         # Go through each sprite that can collide
         for sprite in self.collision_sprites:
             # If there is a collision, handle it
-            if sprite.rect.colliderect(self.rect):
+            if sprite.rect.colliderect(self.hitbox_rect):
                 # Handle horizontal collisions if requested
                 if direction == "horizontal":
                     # If player collides with object to the right and was to the right of it in the last frame
-                    if self.rect.left <= sprite.rect.right and int(self.last_rect.left) >= sprite.last_rect.right:
+                    if (self.hitbox_rect.left <= sprite.rect.right and int(self.last_rect.left)
+                            >= int(sprite.last_rect.right)):
                         # Hug him to it
-                        self.rect.left = sprite.rect.right
+                        self.hitbox_rect.left = sprite.rect.right
 
                     # Do the same for the left side
-                    if self.rect.right >= sprite.rect.left and int(self.last_rect.right) <= sprite.last_rect.left:
-                        self.rect.right = sprite.rect.left
+                    if (self.hitbox_rect.right >= sprite.rect.left and int(self.last_rect.right)
+                            <= int(sprite.last_rect.left)):
+                        self.hitbox_rect.right = sprite.rect.left
 
                 # Otherwise handle vertical collisions
                 else:
                     # Check for top collision, don't allow the player to pass through the collision sprite
-                    if self.rect.top <= sprite.rect.bottom and int(self.last_rect.top) >= sprite.last_rect.bottom:
-                        self.rect.top = sprite.rect.bottom
+                    if (self.hitbox_rect.top <= sprite.rect.bottom and int(self.last_rect.top)
+                            >= int(sprite.last_rect.bottom)):
+                        self.hitbox_rect.top = sprite.rect.bottom
                         # If platform that player's collides with is moving, push him down a little, so he doesn't
                         # Stick to it
                         if hasattr(sprite, "move"):
-                            self.rect.top += 6
+                            self.hitbox_rect.top += 6
 
                     # Check for bottom collision, make the player stand on the other sprite
-                    if self.rect.bottom >= sprite.rect.top and int(self.last_rect.bottom) <= sprite.last_rect.top:
-                        self.rect.bottom = sprite.rect.top
+                    if (self.hitbox_rect.bottom >= sprite.rect.top and int(self.last_rect.bottom)
+                            <= int(sprite.last_rect.top)):
+                        self.hitbox_rect.bottom = sprite.rect.top
 
                         # Prevent absorbing the player
                         if hasattr(sprite, "move"):
-                            self.rect.bottom += -10
+                            self.hitbox_rect.bottom += -10
 
                     # Reset the vertical direction, so the gravity doesn't increase constantly
                     self.direction.y = 0
 
     def _check_semi_collisions(self):
         """Check semi collisions with player"""
-        # Go through each semi collision sprites
-        for sprite in self.semi_collision_sprites:
-            # Check if they collide with the player
-            if sprite.rect.colliderect(self.rect):
-                # If so, let the player stay on them
-                if self.rect.bottom >= sprite.rect.top and self.last_rect.bottom <= sprite.last_rect.top:
-                    self.rect.bottom = sprite.rect.top
+        if not self.timers["platform_skip"].active:
+            # Go through each semi collision sprites
+            for sprite in self.semi_collision_sprites:
+                # Check if they collide with the player
+                if sprite.rect.colliderect(self.hitbox_rect):
+                    # If so, let the player stay on them
+                    if (self.hitbox_rect.bottom >= sprite.rect.top and int(self.last_rect.bottom)
+                            <= int(sprite.last_rect.top)):
+                        self.hitbox_rect.bottom = sprite.rect.top
+
+                        if self.direction.y > 0:
+                            self.direction.y = 0
 
     def _check_contact(self):
         """Check for contacts with tiles"""
         # Get the player's bottom rectangle for bottom collisions
-        down_rect = pygame.Rect(self.rect.bottomleft, (self.rect.width, 2))
+        down_rect = pygame.Rect(self.hitbox_rect.bottomleft, (self.hitbox_rect.width, 2))
         # Get the wall rectangles too
-        right_rect = pygame.Rect(self.rect.topright + vector(0, self.rect.height / 4), (2, self.rect.height / 2))
-        left_rect = pygame.Rect(self.rect.topleft + vector(-2, self.rect.height / 4), (2, self.rect.height / 2))
-
-        # Draw rectangles for visualization
-        pygame.draw.rect(self.surface, "pink", down_rect)
-        pygame.draw.rect(self.surface, "yellow", right_rect)
-        pygame.draw.rect(self.surface, "yellow", left_rect)
+        right_rect = pygame.Rect(self.hitbox_rect.topright + vector(0, self.hitbox_rect.height / 4), (2, self.hitbox_rect.height / 2))
+        left_rect = pygame.Rect(self.hitbox_rect.topleft + vector(-2, self.hitbox_rect.height / 4), (2, self.hitbox_rect.height / 2))
 
         # Check if there were any collisions with collide-able sprites
         collide_rects = [sprite.rect for sprite in self.collision_sprites]
+        # Check for semi collide sprites and get their rectangles
+        semi_collide_rect = [sprite.rect for sprite in self.semi_collision_sprites]
 
         # If there were any with player's bottom rectangle, set down collisions flag to True
         if down_rect.collidelist(collide_rects) >= 0:
@@ -225,15 +240,19 @@ class Player(pygame.sprite.Sprite):
             self.collisions["down"] = False
 
         # Check and set right collisions
-        self.collisions["right"] = True if right_rect.collidelist(collide_rects) >= 0 else False
+        self.collisions["right"] = True if (right_rect.collidelist(collide_rects) >= 0
+                                            or right_rect.collidelist(semi_collide_rect) >= 0
+                                            and self.direction.y >= 0) else False
         # Check and set left ones
         self.collisions["left"] = True if left_rect.collidelist(collide_rects) >= 0 else False
 
         # Reset the platform that player's on
         self.platform = None
+        # Add the collision sprites to the semi collision ones
+        all_sprites = self.collision_sprites.sprites() + self.semi_collision_sprites.sprites()
 
         # Go through each colliding sprite that has the attribute move (platforms do)
-        for sprite in [sprite for sprite in self.collision_sprites.sprites() if hasattr(sprite, "move")]:
+        for sprite in [sprite for sprite in all_sprites if hasattr(sprite, "move")]:
             # If this sprite collides with player, set his platform to this one
             if sprite.rect.colliderect(down_rect):
                 self.platform = sprite
@@ -242,7 +261,7 @@ class Player(pygame.sprite.Sprite):
         """Move when player's on the platform"""
         # If player's on the platform, move him with it
         if self.platform:
-            self.rect.topleft += self.platform.direction * self.platform.speed * delta_time
+            self.hitbox_rect.topleft += self.platform.direction * self.platform.speed * delta_time
 
     def _update_timers(self):
         """Update all the timers"""
