@@ -22,11 +22,11 @@ class Level:
 
     def run(self, delta_time):
         """Run the level"""
-        # Update the level elements
-        self._update_pos(delta_time)
-
         # Draw things
         self._update_surface()
+
+        # Update the level elements
+        self._update_pos(delta_time)
 
     def _update_surface(self):
         """Update level's surface"""
