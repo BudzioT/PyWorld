@@ -20,9 +20,11 @@ class Game:
         # Name it properly
         pygame.display.set_caption("PyWorld")
 
+        # FPS timer
+        self.timer = pygame.time.Clock()
+
         # Load the maps
         self.maps = {0: load_pygame(path_join(settings.BASE_PATH, "../data/levels/omni.tmx"))}
-        print(self.maps)
 
         # Current level
         self.current_level = Level(self.maps[0])
@@ -31,11 +33,14 @@ class Game:
         """Run the game"""
         # Game loop
         while True:
+            # Remain the FPS at 60, save the delta time as milliseconds
+            delta_time = self.timer.tick(60) / 1000
+
             # Handle events
             self._get_events()
 
             # Run the level
-            self.current_level.run()
+            self.current_level.run(delta_time)
 
             # Update display
             self._update_surface()

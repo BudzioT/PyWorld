@@ -16,3 +16,5 @@ class Sprite(pygame.sprite.Sprite):
 
         # Get its rectangle as float for precision
         self.rect = self.image.get_frect(topleft=pos)
+        # Store a copy of it for collisions
+        self.last_rect = self.rect.copy()

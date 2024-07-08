@@ -2,7 +2,6 @@ import sys
 import os
 
 import pygame
-from pygame.math import Vector2 as vector
 
 
 class Settings:
