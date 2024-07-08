@@ -3,6 +3,7 @@ from pygame.math import Vector2 as vector
 
 from src.timer import Timer
 from src.utilities import utilities
+from src.settings import settings
 
 
 class Player(pygame.sprite.Sprite):
@@ -25,6 +26,9 @@ class Player(pygame.sprite.Sprite):
         # Copy his last rectangle (for better collisions)
         self.last_rect = self.hitbox_rect.copy()
 
+        # Player's depth position
+        self.pos_z = settings.LAYERS_DEPTH["main"]
+
         # Vector of direction of the player
         self.direction = vector()
         # His speed
@@ -41,7 +45,7 @@ class Player(pygame.sprite.Sprite):
         self.timers = {
             "wall_jump": Timer(500),
             "block_wall_jump": Timer(300),
-            "platform_skip": Timer(350)
+            "platform_skip": Timer(100)
         }
 
         # Collisions with surface that affect jumping, sliding
@@ -111,7 +115,7 @@ class Player(pygame.sprite.Sprite):
         self._check_collisions("horizontal")
 
         # Check if player is wall sliding (isn't on the floor but touches left or right wall)
-        if not (self.collisions["down"]) and any((self.collisions["left"], self.collisions["right"]))\
+        if not self.collisions["down"] and any((self.collisions["left"], self.collisions["right"]))\
                 and not self.timers["block_wall_jump"].active:
             # Reset the direction
             self.direction.y = 0
@@ -132,7 +136,6 @@ class Player(pygame.sprite.Sprite):
             # If player has down collision, meaning he is standing on something, allow him to jump
             if self.collisions["down"]:
                 self.direction.y = -self.jump_power
-                self.hitbox_rect.y += self.direction.y * delta_time
 
                 # Start the timer to bloc him from wall jumping
                 self.timers["block_wall_jump"].start()
@@ -147,7 +150,6 @@ class Player(pygame.sprite.Sprite):
 
                 # Increase player's direction to the top, save it to the rectangle
                 self.direction.y = -self.jump_power
-                self.hitbox_rect.y += self.direction.y * delta_time
                 # Apply negative to the current direction
                 self.direction.x = 1 if self.collisions["left"] else -1
 
@@ -197,10 +199,6 @@ class Player(pygame.sprite.Sprite):
                             <= int(sprite.last_rect.top)):
                         self.hitbox_rect.bottom = sprite.rect.top
 
-                        # Prevent absorbing the player
-                        if hasattr(sprite, "move"):
-                            self.hitbox_rect.bottom += -10
-
                     # Reset the vertical direction, so the gravity doesn't increase constantly
                     self.direction.y = 0
 
@@ -233,16 +231,12 @@ class Player(pygame.sprite.Sprite):
         semi_collide_rect = [sprite.rect for sprite in self.semi_collision_sprites]
 
         # If there were any with player's bottom rectangle, set down collisions flag to True
-        if down_rect.collidelist(collide_rects) >= 0:
-            self.collisions["down"] = True
-        # Otherwise set it to False
-        else:
-            self.collisions["down"] = False
+        self.collisions["down"] = True if (down_rect.collidelist(collide_rects) >= 0
+                                           or down_rect.collidelist(semi_collide_rect) >= 0
+                                           and self.direction.y >= 0) else False
 
         # Check and set right collisions
-        self.collisions["right"] = True if (right_rect.collidelist(collide_rects) >= 0
-                                            or right_rect.collidelist(semi_collide_rect) >= 0
-                                            and self.direction.y >= 0) else False
+        self.collisions["right"] = True if right_rect.collidelist(collide_rects) >= 0 else False
         # Check and set left ones
         self.collisions["left"] = True if left_rect.collidelist(collide_rects) >= 0 else False
 

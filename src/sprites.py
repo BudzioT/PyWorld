@@ -6,7 +6,8 @@ from src.settings import settings
 
 class Sprite(pygame.sprite.Sprite):
     """General sprite class"""
-    def __init__(self, pos, surface=pygame.Surface((settings.TILE_SIZE, settings.TILE_SIZE)), group=None):
+    def __init__(self, pos, surface=pygame.Surface((settings.TILE_SIZE, settings.TILE_SIZE)), group=None,
+                 pos_z=settings.LAYERS_DEPTH["main"]):
         """Prepare the sprite"""
         super().__init__(group)
 
@@ -17,6 +18,9 @@ class Sprite(pygame.sprite.Sprite):
         self.rect = self.image.get_frect(topleft=pos)
         # Store a copy of it for collisions
         self.last_rect = self.rect.copy()
+
+        # Depth position of the sprite
+        self.pos_z = pos_z
 
 
 class MovingSprite(Sprite):

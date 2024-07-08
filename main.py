@@ -6,6 +6,7 @@ from pytmx.util_pygame import load_pygame
 
 from src.settings import settings
 from src.level import Level
+from src.utilities import utilities
 
 
 class Game:
@@ -60,6 +61,10 @@ class Game:
         """Update the display surface"""
         # Update the surface
         pygame.display.update()
+
+    def _get_assets(self):
+        """Load and store the assets"""
+        pass
 
 
 # If it's a main file, run the game

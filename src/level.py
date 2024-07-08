@@ -49,8 +49,32 @@ class Level:
 
         # Go through each layer and import it
         for layer in ["BG", "Terrain", "FG", "Platforms"]:
+            # Group list depending on the layer
+            groups = [self.sprites]
+
+            # If tile is a terrain, give it just collision group
+            if layer == "Terrain":
+                groups.append(self.collision_sprites)
+            # If it's a platform, make it semi collide-able
+            elif layer == "Platforms":
+                groups.append(self.semi_collision_sprites)
+
+            # Check for depth position based off layer type
+            # If it's a background tile, set it as one
+            if layer == "BG":
+                pos_z = settings.LAYERS_DEPTH["bg_tiles"]
+            # Set foreground as it
+            elif layer == "FG":
+                pos_z = settings.LAYERS_DEPTH["fg"]
+            # Otherwise just set it as main
+            else:
+                pos_z = settings.LAYERS_DEPTH["main"]
+
+            # Get every tile of the layer, place it on the map
             for pos_x, pos_y, surface in level_map.get_layer_by_name(layer).tiles():
-                Sprite()
+                # Create the tile
+                Sprite((pos_x * settings.TILE_SIZE, pos_y * settings.TILE_SIZE),
+                       surface, groups, pos_z)
 
         # Go through each terrain tiles and get its position as well as the surface
         for pos_x, pos_y, surface in level_map.get_layer_by_name("Terrain").tiles():

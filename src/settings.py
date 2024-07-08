@@ -21,6 +21,18 @@ class Settings:
         # Base file path
         self.BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 
+        # Layers with depth as value
+        self.LAYERS_DEPTH = {
+            "bg": 0,
+            "clouds": 1,
+            "bg_tiles": 2,
+            "path": 3,
+            "bg_details": 4,
+            "main": 5,
+            "water": 6,
+            "fg": 7
+        }
+
 
 # Settings instance
 settings = Settings()

@@ -21,8 +21,8 @@ class Sprites(pygame.sprite.Group):
         self.offset.x = -(target_pos[0] - settings.WINDOW_WIDTH / 2)
         self.offset.y = -(target_pos[1] - settings.WINDOW_HEIGHT / 2)
 
-        # Go through each of sprites
-        for sprite in self:
+        # Go through each of sprites, sort them by depth, for proper drawing
+        for sprite in sorted(self, key=lambda sprite: sprite.pos_z):
             # Calculate the offset of this specific sprite
             offset = sprite.rect.topleft + self.offset
             # Blit them
