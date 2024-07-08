@@ -1,16 +1,17 @@
 import pygame.sprite
+from pygame.math import Vector2 as vector
 
 from src.settings import settings
 
 
 class Sprite(pygame.sprite.Sprite):
     """General sprite class"""
-    def __init__(self, pos, surface, group=None):
+    def __init__(self, pos, surface=pygame.Surface((settings.TILE_SIZE, settings.TILE_SIZE)), group=None):
         """Prepare the sprite"""
         super().__init__(group)
 
-        # Create a basic surface with size the same as tiles
-        self.image = pygame.Surface((settings.TILE_SIZE, settings.TILE_SIZE))
+        # Get the surface
+        self.image = surface
         # Fill it with white color for test
         self.image.fill("white")
 
@@ -22,6 +23,65 @@ class Sprite(pygame.sprite.Sprite):
 
 class MovingSprite(Sprite):
     """Sprite that can move"""
-    def __init__(self, start_pos, end_pos, groups, move_dir, speed):
+    def __init__(self, start_pos, end_pos, direction, speed, group):
         """Initialize the sprite"""
+        # Create temp surface
+        surface = pygame.Surface((200, 50))
 
+        # Initialize the general sprite
+        super().__init__(start_pos, surface, group)
+
+        # Set its correct position
+        if direction == 'x':
+            self.rect.midleft = start_pos
+        else:
+            self.rect.midtop = start_pos
+
+        # Get sprite's position
+        self.start_pos = start_pos
+        self.end_pos = end_pos
+
+        # Move flag
+        self.move = True
+
+        # Set its speed
+        self.speed = speed
+
+        # Store the direction vector depending on the axis
+        self.direction = vector(1, 0) if direction == 'x' else vector(0, 1)
+        # Store the sprite movement type
+        self.move_type = direction
+
+    def update(self, delta_time):
+        """Update the moving sprite"""
+        # Update the last rectangle
+        self.last_rect = self.rect.copy()
+
+        # Move the sprite
+        self.rect.topleft += self.direction * self.speed * delta_time
+        # Bounce it if needed
+        self._bounce()
+
+    def _bounce(self):
+        """Bounce the sprite when reaching starting and ending positions"""
+        # If the direction is horizontal, handle horizontal bouncing
+        if self.move_type == 'x':
+            # If sprite is at its end position, change its direction
+            if self.rect.right >= self.end_pos[0] and self.direction.x == 1:
+                self.direction.x = -1
+                self.rect.right = self.end_pos[0]
+            # If sprite is at its start position, change its direction too
+            if self.rect.left <= self.start_pos[0] and self.direction.x == -1:
+                self.direction.x = 1
+                self.rect.left = self.start_pos[0]
+
+        # Otherwise handle vertical bouncing
+        else:
+            # Bounce off the end position
+            if self.rect.bottom >= self.end_pos[1] and self.direction.y == 1:
+                self.direction.y = -1
+                self.rect.bottom = self.end_pos[1]
+            # Bounce off the start position
+            if self.rect.top <= self.start_pos[1] and self.direction.y == -1:
+                self.direction.y = 1
+                self.rect.top = self.start_pos[1]

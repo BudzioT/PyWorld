@@ -6,7 +6,7 @@ from src.timer import Timer
 
 class Player(pygame.sprite.Sprite):
     """The player character of the game"""
-    def __init__(self, pos, group, collision_sprites):
+    def __init__(self, pos, group, collision_sprites, semi_collision_sprites):
         """Initialize the player"""
         super().__init__(group)
 
@@ -46,6 +46,11 @@ class Player(pygame.sprite.Sprite):
 
         # Sprites that player can collide with
         self.collision_sprites = collision_sprites
+        # Semi collisions sprites, that player can only collide with on top of them
+        self.semi_collision_sprites = pygame.sprite.Group()
+
+        # Platform that player's on
+        self.platform = None
 
     def update(self, delta_time):
         """Update the player"""
@@ -57,8 +62,12 @@ class Player(pygame.sprite.Sprite):
 
         # Handle input
         self._input()
+
         # Move him
         self._move(delta_time)
+        # Move him when he's on moving platform
+        self._move_platform(delta_time)
+
         # Check for collision contacts
         self._check_contact()
 
@@ -118,8 +127,11 @@ class Player(pygame.sprite.Sprite):
             if self.collisions["down"]:
                 self.direction.y = -self.jump_power
                 self.rect.y += self.direction.y * delta_time
+
                 # Start the timer to bloc him from wall jumping
                 self.timers["block_wall_jump"].start()
+                # Move the player up a little, so the moving platforms doesn't absorb the player
+                self.rect.bottom -= 1
 
             # If player touches the wall in air and there isn't a wall jump block time, allow him to jump
             elif (any((self.collisions["left"], self.collisions["right"]))
@@ -138,6 +150,8 @@ class Player(pygame.sprite.Sprite):
 
         # Check for vertical collisions
         self._check_collisions("vertical")
+        # Check for semi collisions
+        self._check_semi_collisions()
 
     def _check_collisions(self, direction):
         """Check and handle collisions"""
@@ -148,25 +162,44 @@ class Player(pygame.sprite.Sprite):
                 # Handle horizontal collisions if requested
                 if direction == "horizontal":
                     # If player collides with object to the right and was to the right of it in the last frame
-                    if self.rect.left <= sprite.rect.right and self.last_rect.left >= sprite.last_rect.right:
+                    if self.rect.left <= sprite.rect.right and int(self.last_rect.left) >= sprite.last_rect.right:
                         # Hug him to it
                         self.rect.left = sprite.rect.right
 
                     # Do the same for the left side
-                    if self.rect.right >= sprite.rect.left and self.last_rect.right <= sprite.last_rect.left:
+                    if self.rect.right >= sprite.rect.left and int(self.last_rect.right) <= sprite.last_rect.left:
                         self.rect.right = sprite.rect.left
 
                 # Otherwise handle vertical collisions
                 else:
                     # Check for top collision, don't allow the player to pass through the collision sprite
-                    if self.rect.top <= sprite.rect.bottom and self.last_rect.top >= sprite.last_rect.bottom:
+                    if self.rect.top <= sprite.rect.bottom and int(self.last_rect.top) >= sprite.last_rect.bottom:
                         self.rect.top = sprite.rect.bottom
+                        # If platform that player's collides with is moving, push him down a little, so he doesn't
+                        # Stick to it
+                        if hasattr(sprite, "move"):
+                            self.rect.top += 6
+
                     # Check for bottom collision, make the player stand on the other sprite
-                    if self.rect.bottom >= sprite.rect.top and self.last_rect.bottom <= sprite.last_rect.top:
+                    if self.rect.bottom >= sprite.rect.top and int(self.last_rect.bottom) <= sprite.last_rect.top:
                         self.rect.bottom = sprite.rect.top
+
+                        # Prevent absorbing the player
+                        if hasattr(sprite, "move"):
+                            self.rect.bottom += -10
 
                     # Reset the vertical direction, so the gravity doesn't increase constantly
                     self.direction.y = 0
+
+    def _check_semi_collisions(self):
+        """Check semi collisions with player"""
+        # Go through each semi collision sprites
+        for sprite in self.semi_collision_sprites:
+            # Check if they collide with the player
+            if sprite.rect.colliderect(self.rect):
+                # If so, let the player stay on them
+                if self.rect.bottom >= sprite.rect.top and self.last_rect.bottom <= sprite.last_rect.top:
+                    self.rect.bottom = sprite.rect.top
 
     def _check_contact(self):
         """Check for contacts with tiles"""
@@ -195,6 +228,21 @@ class Player(pygame.sprite.Sprite):
         self.collisions["right"] = True if right_rect.collidelist(collide_rects) >= 0 else False
         # Check and set left ones
         self.collisions["left"] = True if left_rect.collidelist(collide_rects) >= 0 else False
+
+        # Reset the platform that player's on
+        self.platform = None
+
+        # Go through each colliding sprite that has the attribute move (platforms do)
+        for sprite in [sprite for sprite in self.collision_sprites.sprites() if hasattr(sprite, "move")]:
+            # If this sprite collides with player, set his platform to this one
+            if sprite.rect.colliderect(down_rect):
+                self.platform = sprite
+
+    def _move_platform(self, delta_time):
+        """Move when player's on the platform"""
+        # If player's on the platform, move him with it
+        if self.platform:
+            self.rect.topleft += self.platform.direction * self.platform.speed * delta_time
 
     def _update_timers(self):
         """Update all the timers"""

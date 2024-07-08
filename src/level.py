@@ -1,7 +1,7 @@
 import pygame
 
 from src.settings import settings
-from src.sprites import Sprite
+from src.sprites import Sprite, MovingSprite
 from src.player import Player
 
 
@@ -16,6 +16,8 @@ class Level:
         self.sprites = pygame.sprite.Group()
         # Sprites that collide
         self.collision_sprites = pygame.sprite.Group()
+        # Semi collision sprites
+        self.semi_collision_sprites = pygame.sprite.Group()
 
         # Initialize the level's map
         self._initialize(level_map)
@@ -54,7 +56,7 @@ class Level:
         for obj in level_map.get_layer_by_name("Objects"):
             # If this object is a player, create him
             if obj.name == "player":
-                Player((obj.x, obj.y), self.sprites, self.collision_sprites)
+                Player((obj.x, obj.y), self.sprites, self.collision_sprites, self.semi_collision_sprites)
 
         # Objects that can move
         for obj in level_map.get_layer_by_name("Moving Objects"):
@@ -74,3 +76,6 @@ class Level:
                     end_pos = (obj.x + obj.width / 2, obj.y + obj.height)
                 # Save speed from platform's properties
                 speed = obj.properties["speed"]
+
+                # Create the moving platform sprite
+                MovingSprite(start_pos, end_pos, direction, speed, (self.sprites, self.semi_collision_sprites))
