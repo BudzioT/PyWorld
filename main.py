@@ -8,6 +8,7 @@ from src.settings import settings
 from src.level import Level
 from src.utilities import utilities
 from src.data import Data
+from src.ui import UI
 
 
 class Game:
@@ -28,8 +29,11 @@ class Game:
         # Import assets
         self._get_assets()
 
+        # Game's user's interface
+        self.ui = UI(self.ui_frames, self.font)
+
         # Data of the game
-        self.data = Data()
+        self.data = Data(self.ui)
 
         # Load the maps
         self.maps = {0: load_pygame(path_join(settings.BASE_PATH, "../data/levels/omni.tmx"))}
@@ -51,7 +55,7 @@ class Game:
             self.current_level.run(delta_time)
 
             # Update display
-            self._update_surface()
+            self._update_surface(delta_time)
 
     def _get_events(self):
         """Get and handle the game's events"""
@@ -64,8 +68,11 @@ class Game:
                 # Quit
                 sys.exit()
 
-    def _update_surface(self):
+    def _update_surface(self, delta_time):
         """Update the display surface"""
+        # Update the user's interface and draw it
+        self.ui.update(delta_time)
+
         # Update the surface
         pygame.display.update()
 
@@ -98,6 +105,14 @@ class Game:
             "small_chain": utilities.load_folder("../graphics/level/small_chains"),
             "saw_chain": utilities.load("../graphics/enemies/saw/saw_chain.png"),
             "spike_chain": utilities.load("../graphics/enemies/spike_ball/spiked_chain.png")
+        }
+
+        # Create game's font with a size of 40
+        self.font = pygame.font.Font(path_join(settings.BASE_PATH, "../graphics/ui/runescape_uf.ttf"), 40)
+
+        # Frames for user's interface
+        self.ui_frames = {
+            "health": utilities.load_folder("../graphics/ui/heart")
         }
 
 
