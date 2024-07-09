@@ -7,6 +7,7 @@ from src.settings import settings
 from src.sprites import Sprite, MovingSprite, AnimatedSprite
 from src.player import Player
 from src.groups import Sprites
+from src.enemies import SpikeBall
 
 
 class Level:
@@ -155,8 +156,18 @@ class Level:
 
         # Objects that can move
         for obj in level_map.get_layer_by_name("Moving Objects"):
+            # Create a SpikeBall if that's the object
             if obj.name == "spike":
-                pass
+                SpikeBall((obj.x + obj.width / 2, obj.y + obj.height / 2), level_frames["spike_ball"],
+                          (self.sprites, self.damage_sprites), obj.properties["radius"],
+                          obj.properties["speed"], obj.properties["start_angle"], obj.properties["end_angle"])
+                # Create its chain
+                for radius in range(0, obj.properties["radius"], 20):
+                    SpikeBall((obj.x + obj.width / 2, obj.y + obj.height / 2), level_frames["spike_chain"],
+                              self.sprites, radius, obj.properties["speed"],
+                              obj.properties["start_angle"], obj.properties["end_angle"],
+                              settings.LAYERS_DEPTH["bg_details"])
+
             else:
                 # Animation frames of moving objects
                 frames = level_frames[obj.name]
@@ -184,16 +195,34 @@ class Level:
                 speed = obj.properties["speed"]
 
                 # Create the moving platform sprite
-                MovingSprite(start_pos, end_pos, frames, direction, speed, groups)
+                MovingSprite(start_pos, end_pos, frames, direction, speed, groups, obj.properties["flip"])
 
                 # If it's a saw, draw its path
                 if obj.name == "saw":
                     # If it moves horizontally, handle it that way
                     if direction == 'x':
                         # Save saw's vertical position, it stays the same
-                        pos_y = start_pos[1]
+                        pos_y = start_pos[1] - level_frames["saw_chain"].get_height() / 2
                         # Save the left and right side of saw's track
                         left = int(start_pos[0])
                         right = int(end_pos[0])
-                        # Create the path
-                        
+
+                        # Create the path from multiple dots
+                        for pos_x in range(left, right, 20):
+                            Sprite((pos_x, pos_y), level_frames["saw_chain"], self.sprites,
+                                   settings.LAYERS_DEPTH["bg_details"])
+
+                    # Otherwise create a vertical path
+                    else:
+                        # Remain the saw's horizontal position, center it
+                        pos_x = start_pos[0] - level_frames["saw_chain"].get_width() / 2
+
+                        # Get the top and bottom saw's position
+                        top = int(start_pos[1])
+                        bottom = int(end_pos[1])
+
+                        # Draw dots that indicate path from the most bottom saw position to the top one
+                        for pos_y in range(top, bottom, 20):
+                            Sprite((pos_x, pos_y), level_frames["saw_chain"], self.sprites,
+                                   settings.LAYERS_DEPTH["bg_details"])
+

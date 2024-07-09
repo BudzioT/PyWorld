@@ -25,7 +25,7 @@ class Sprite(pygame.sprite.Sprite):
 
 class AnimatedSprite(Sprite):
     """Sprite that is animated"""
-    def __init__(self, pos, frames, group, pos_z=settings.LAYERS_DEPTH["main"], animation_speed=8):
+    def __init__(self, pos, frames, group, pos_z=settings.LAYERS_DEPTH["main"], animation_speed=8, ):
         """Initialized the animated sprite"""
         # Animation frames
         self.frames = frames
@@ -52,7 +52,7 @@ class AnimatedSprite(Sprite):
 
 class MovingSprite(AnimatedSprite):
     """Sprite that can move"""
-    def __init__(self, start_pos, end_pos, frames, direction, speed, group):
+    def __init__(self, start_pos, end_pos, frames, direction, speed, group, flip=False):
         """Initialize the sprite"""
         # Initialize the general sprite
         super().__init__(start_pos, frames, group)
@@ -69,6 +69,11 @@ class MovingSprite(AnimatedSprite):
 
         # Move flag
         self.move = True
+        # The image needs to be flipped flag
+        self.flip = flip
+
+        # Dictionary that manages flip directions
+        self.flip_directions = {'x': False, 'y': False}
 
         # Set its speed
         self.speed = speed
@@ -90,6 +95,14 @@ class MovingSprite(AnimatedSprite):
 
         # Anime the sprite
         self._animate(delta_time)
+        # Flip the image when in need
+        self._flip()
+
+    def _flip(self):
+        """Flip the animation if needed"""
+        # Flip the image when flag is true, by using the prepared dictionary
+        if self.flip:
+            self.image = pygame.transform.flip(self.image, self.flip_directions['x'], self.flip_directions['y'])
 
     def _bounce(self):
         """Bounce the sprite when reaching starting and ending positions"""
@@ -103,6 +116,8 @@ class MovingSprite(AnimatedSprite):
             if self.rect.left <= self.start_pos[0] and self.direction.x == -1:
                 self.direction.x = 1
                 self.rect.left = self.start_pos[0]
+            # Flip the sprite horizontally
+            self.flip_directions['x'] = True if self.direction.x < 0 else False
 
         # Otherwise handle vertical bouncing
         else:
@@ -114,3 +129,5 @@ class MovingSprite(AnimatedSprite):
             if self.rect.top <= self.start_pos[1] and self.direction.y == -1:
                 self.direction.y = 1
                 self.rect.top = self.start_pos[1]
+            # Flip the sprite vertically
+            self.flip_directions['y'] = True if self.direction.y > 0 else False

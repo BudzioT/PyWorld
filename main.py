@@ -76,6 +76,7 @@ class Game:
             # Enemies
             "saw": utilities.load_folder("../graphics/enemies/saw/animation"),
             "floor_spike": utilities.load_folder("../graphics/enemies/floor_spikes"),
+            "spike_ball": utilities.load("../graphics/enemies/spike_ball/Spiked Ball.png"),
             # Other objects
             "palms": utilities.load_subfolders("../graphics/level/palms"),
             "helicopter": utilities.load_folder("../graphics/level/helicopter"),
@@ -86,6 +87,8 @@ class Game:
             "window": utilities.load_folder("../graphics/level/window"),
             "big_chain": utilities.load_folder("../graphics/level/big_chains"),
             "small_chain": utilities.load_folder("../graphics/level/small_chains"),
+            "saw_chain": utilities.load("../graphics/enemies/saw/saw_chain.png"),
+            "spike_chain": utilities.load("../graphics/enemies/spike_ball/spiked_chain.png")
         }
 
 
