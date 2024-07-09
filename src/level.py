@@ -8,7 +8,7 @@ from src.sprites import Sprite, MovingSprite, AnimatedSprite
 from src.player import Player
 from src.groups import Sprites
 from src.enemies import SpikeBall
-from src.enemies import Tooth, Shell
+from src.enemies import Tooth, Shell, Pearl
 
 
 class Level:
@@ -29,6 +29,8 @@ class Level:
 
         # Tooth enemy sprites
         self.tooth_sprites = pygame.sprite.Group()
+        # Pearl projectiles sprites
+        self.pearl_sprites = pygame.sprite.Group()
 
         # Initialize the level's map
         self._initialize(level_map, level_frames)
@@ -241,4 +243,8 @@ class Level:
             # Create a Shell enemy
             if enemy.name == "shell":
                 Shell((enemy.x, enemy.y), level_frames["shell"], (self.sprites, self.collision_sprites),
-                      enemy.properties["reverse"])
+                      enemy.properties["reverse"], self.player)
+
+    def _create_pearl(self, pos, direction, level_frames):
+        """Create a pearl shot by the shell"""
+        Pearl(pos, (self.sprites, self.damage_sprites, self.pearl_sprites), level_frames["pearl"])

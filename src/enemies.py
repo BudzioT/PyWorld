@@ -2,9 +2,11 @@ import math
 import random
 
 import pygame.sprite
+from pygame.math import Vector2 as vector
 
 from src.sprites import Sprite
 from src.settings import settings
+from src.timer import Timer
 
 
 class SpikeBall(Sprite):
@@ -122,7 +124,7 @@ class Tooth(pygame.sprite.Sprite):
 
 class Shell(pygame.sprite.Sprite):
     """Shell enemy that player can stand on and it shoots him"""
-    def __init__(self, pos, frames, group, flip):
+    def __init__(self, pos, frames, group, flip, player):
         """Prepare the shell enemy"""
         super().__init__(group)
 
@@ -137,9 +139,14 @@ class Shell(pygame.sprite.Sprite):
                     # Flip them horizontally and append to the frames list of this specific animation type
                     self.frames[animation_type].append(pygame.transform.flip(surface, True, False))
 
+            # Set the projectile direction to the left
+            self.projectile_direction = -1
+
         # Otherwise just set the frames normally
         else:
             self.frames = frames
+            # Set projectile direction to right
+            self.projectile_direction = 1
 
         # The current frame
         self.frame = 0
@@ -154,4 +161,97 @@ class Shell(pygame.sprite.Sprite):
         self.last_rect = self.rect.copy()
 
         # Depth position
+        self.pos_z = settings.LAYERS_DEPTH["main"]
+
+        # Get the player's reference
+        self.player = player
+
+        # Attack cooldown timer
+        self.attack_timer = Timer(2500)
+        # Shoot flag
+        self.shoot = False
+
+    def update(self, delta_time):
+        """Update the shell enemy"""
+        # Update the attack cooldown timer
+        self.attack_timer.update()
+
+        # Change state of the shell if player is near
+        self._set_state()
+
+        # Animate the shell
+        self._animate(delta_time)
+
+    def _set_state(self):
+        """Set state of the shell"""
+        # Get player's and shell's positions for range calculations
+        player_pos = vector(self.player.hitbox_rect.center)
+        shell_pos = vector(self.rect.center)
+
+        # Flag that indicates that player is in range of the shell (distance between them is lower than 500)
+        near = shell_pos.distance_to(player_pos) < 500
+        # Player is on the vertical level of the shell flag (around 40 pixels difference is acceptable)
+        same_level = abs(shell_pos.y - player_pos.y) < 40
+        # Set the player in front flag to True if shell shoots to the left and player is on the left
+        if self.projectile_direction < 0:
+            in_front = shell_pos.x > player_pos.x
+        # Otherwise, if player is on the right while it shoots right, set it too
+        else:
+            in_front = shell_pos.x < player_pos.x
+
+        print(near, same_level, in_front)
+
+        # If player is near the shell, at around the same vertical position and is in front of the shell
+        if near and same_level and in_front:
+            # If cooldown isn't on, attack
+            if not self.attack_timer.active:
+                # Change the state to attack
+                self.state = "fire"
+                # Reset the frames, for clean attack animation
+                self.frame = 0
+
+                # Start the attack cooldown
+                self.attack_timer.start()
+
+    def _animate(self, delta_time):
+        """Animate the shell"""
+        # Increase current frame
+        self.frame += settings.ANIMATION_SPEED * delta_time
+
+        # Set the frame of the shell to the current one, make sure it doesn't go out of bounds
+        if self.frame < len(self.frames[self.state]):
+            self.image = self.frames[self.state][int(self.frame)]
+
+            # If the shell is attacking, didn't shoot already, and it's the third frame of animation
+            if self.state == "fire" and not self.shoot and int(self.frame) == 3:
+                print("SHOOT")
+                # Make the shell shoot
+                self.shoot = True
+
+        # If the animation ended restart it
+        else:
+            # Reset the frame
+            self.frame = 0
+            # If enemy just shot, set its state back to idle
+            if self.state == "fire":
+                self.state = "idle"
+                # Set shoot flag to False
+                self.shoot = False
+
+
+class Pearl(pygame.sprite.Sprite):
+    """Pearl shot by the shell enemy"""
+    def __init__(self, pos, surface, group, speed, direction):
+        """Initialize the pearl projectile"""
+        super().__init__(group)
+
+        # Set image of the pearl and get its rectangle, center it in the given position
+        self.image = surface
+        self.rect = self.image.get_frect(center=pos)
+
+        # Speed and direction of the projectile
+        self.speed = speed
+        self.direction = direction
+
+        # Its depth position
         self.pos_z = settings.LAYERS_DEPTH["main"]

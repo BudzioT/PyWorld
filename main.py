@@ -79,6 +79,7 @@ class Game:
             "spike_ball": utilities.load("../graphics/enemies/spike_ball/Spiked Ball.png"),
             "tooth": utilities.load_folder("../graphics/enemies/tooth/run"),
             "shell": utilities.load_subfolders("../graphics/enemies/shell"),
+            "pearl": utilities.load("../graphics/enemies/bullets/pearl.png"),
             # Other objects
             "palms": utilities.load_subfolders("../graphics/level/palms"),
             "helicopter": utilities.load_folder("../graphics/level/helicopter"),
