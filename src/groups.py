@@ -1,8 +1,11 @@
+import random
+
 import pygame.sprite
 from pygame.math import Vector2 as vector
 
 from src.settings import settings
-from src.sprites import Sprite
+from src.sprites import Sprite, Cloud
+from src.timer import Timer
 
 
 class Sprites(pygame.sprite.Group):
@@ -23,11 +26,6 @@ class Sprites(pygame.sprite.Group):
         # Horizon line position
         self.horizon_line = horizon_line
 
-        # Sky flag
-        self.sky = not bg_tile
-        # Create sky if needed
-        self._create_clouds(clouds)
-
         # Borders of the level
         self.borders = {
             "left": 0,
@@ -37,10 +35,15 @@ class Sprites(pygame.sprite.Group):
             "top": top_limit
         }
 
+        # Sky flag
+        self.sky = not bg_tile
+        # Create sky if needed
+        self._create_clouds(clouds)
+
         # Offset of the camera
         self.offset = vector()
 
-    def draw(self, target_pos):
+    def draw(self, target_pos, delta_time):
         """Draw the sprites"""
         # Update the offset of the camera
         self.offset.x = -(target_pos[0] - settings.WINDOW_WIDTH / 2)
@@ -51,7 +54,13 @@ class Sprites(pygame.sprite.Group):
 
         # If there is sky, draw it
         if self.sky:
+            # Draw the sky
             self._draw_sky()
+            # Draw large clouds
+            self._draw_large_clouds(delta_time)
+
+            # Update the cloud appear timer
+            self.cloud_timer.update()
 
         # Go through each of sprites, sort them by depth, for proper drawing
         for sprite in sorted(self, key=lambda element: element.pos_z):
@@ -97,11 +106,35 @@ class Sprites(pygame.sprite.Group):
             self.small_clouds = clouds["small"]
             self.large_cloud = clouds["large"]
 
-            # Set the large cloud variables
+            # Direction of clouds
+            self.cloud_direction = -1
+
+            # Set the large cloud speed and position
             self.large_cloud_speed = 40
             self.large_cloud_x = 0
-            self.large_cloud_tiles = int(self.width / self.large_cloud.get_width() / settings.TILE_SIZE) + 2
-            print(self.large_cloud_tiles)
+
+            # Set dimensions of the large clouds
+            self.large_cloud_width = self.large_cloud.get_width()
+            self.large_cloud_height = self.large_cloud.get_height()
+
+            # Set the number of tiles that they can occupy
+            self.large_cloud_tiles = int(self.width / self.large_cloud_width / settings.TILE_SIZE) + 2
+
+            # Create clouds every 2,5 seconds, by calling the proper function
+            self.cloud_timer = Timer(2500, self._create_small_cloud, True)
+            # Start the timer
+            self.cloud_timer.start()
+
+            # Create 15 small clouds at the start
+            for cloud_num in range(15):
+                # Get a random position of a cloud
+                pos = (random.randint(0, self.width / settings.TILE_SIZE),
+                       random.randint(self.borders["top"], self.horizon_line))
+                # Choose a random surface
+                surface = random.choice(self.small_clouds)
+
+                # Create a cloud
+                Cloud(pos, surface, self)
 
     def _draw_sky(self):
         """Draw the sky"""
@@ -123,3 +156,29 @@ class Sprites(pygame.sprite.Group):
 
     def _draw_large_clouds(self, delta_time):
         """Draw large clouds and move them"""
+        # Move the large cloud
+        self.large_cloud_x += self.cloud_direction * self.large_cloud_speed * delta_time
+
+        # If clouds ended, set them back to horizontal position equal to 0
+        if self.large_cloud_x <= -self.large_cloud_width:
+            self.large_cloud_x = 0
+
+        # Create as many clouds as there can be to fill width of the screen
+        for cloud_num in range(self.large_cloud_tiles):
+            # Get the left and top location
+            left = self.large_cloud_x + self.large_cloud_width * cloud_num + self.offset.x
+            top = self.horizon_line - self.large_cloud_height + self.offset.y
+
+            # Blit the large cloud
+            self.surface.blit(self.large_cloud, (left, top))
+
+    def _create_small_cloud(self):
+        """Create a random small cloud"""
+        # Choose a random position from behind the right side of screen
+        pos = (random.randint(self.width / settings.TILE_SIZE + 450, self.width / settings.TILE_SIZE + 600),
+               random.randint(self.borders["top"], self.horizon_line))
+        # Get a random cloud surface
+        surface = random.choice(self.small_clouds)
+
+        # Create a cloud with this information
+        Cloud(pos, surface, self)

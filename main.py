@@ -9,6 +9,7 @@ from src.level import Level
 from src.utilities import utilities
 from src.data import Data
 from src.ui import UI
+from src.overworld import OverWorld
 
 
 class Game:
@@ -37,9 +38,12 @@ class Game:
 
         # Load the maps
         self.maps = {0: load_pygame(path_join(settings.BASE_PATH, "../data/levels/omni.tmx"))}
+        # Load the over-world map
+        self.overworld_map = load_pygame(path_join(settings.BASE_PATH, "../data/overworld/overworld.tmx"))
 
         # Current level
-        self.current_level = Level(self.maps[0], self.level_frames, self.data)
+        # self.current_level = Level(self.maps[0], self.level_frames, self.data)
+        self.current_level = OverWorld(self.overworld_map, self.data, self.overworld_frames)
 
     def run(self):
         """Run the game"""
@@ -110,6 +114,14 @@ class Game:
             "spike_chain": utilities.load("../graphics/enemies/spike_ball/spiked_chain.png"),
             "small_cloud": utilities.load_folder("../graphics/level/clouds/small"),
             "large_cloud": utilities.load("../graphics/level/clouds/large_cloud.png")
+        }
+
+        # Frames for overworld map
+        self.overworld_frames = {
+            # General frames
+            "water": utilities.load_folder("../graphics/overworld/water"),
+            # Other objects frames
+            "palm": utilities.load_folder("../graphics/overworld/palm")
         }
 
         # Create game's font with a size of 40

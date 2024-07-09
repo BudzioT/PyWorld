@@ -70,15 +70,15 @@ class Level:
         self._update_pos(delta_time)
 
         # Draw things
-        self._update_surface()
+        self._update_surface(delta_time)
 
-    def _update_surface(self):
+    def _update_surface(self, delta_time):
         """Update level's surface"""
         # Clean the surface
         self.surface.fill("gray")
 
         # Draw all sprites
-        self.sprites.draw(self.player.hitbox_rect)
+        self.sprites.draw(self.player.hitbox_rect, delta_time)
 
     def _update_pos(self, delta_time):
         """Update position of all level elements"""

@@ -1,3 +1,5 @@
+import random
+
 import pygame.sprite
 from pygame.math import Vector2 as vector
 
@@ -170,3 +172,27 @@ class Item(AnimatedSprite):
             # If player already has maximum number of lives, give him 10 coins
             else:
                 self.data.coins += 10
+
+
+class Cloud(Sprite):
+    """Cloud that moves"""
+    def __init__(self, pos, surface, group, pos_z=settings.LAYERS_DEPTH["clouds"]):
+        """Initialize the cloud"""
+        super().__init__(pos, surface, group, pos_z)
+
+        # Choose a random cloud speed
+        self.speed = random.randint(50, 120)
+        # Cloud's direction
+        self.direction = -1
+
+        # Center the cloud
+        self.rect.midbottom = pos
+
+    def update(self, delta_time):
+        """Update the cloud's position"""
+        # Move the cloud
+        self.rect.x += self.direction * self.speed * delta_time
+
+        # If cloud behind the left border of the game, delete it
+        if self.rect.right <= 0:
+            self.kill()
