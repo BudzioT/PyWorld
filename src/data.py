@@ -36,5 +36,13 @@ class Data:
         """Set the amount of coins"""
         # Set current coins
         self._coins = value
+
+        # If player collected 100 coins or more
+        if self._coins >= 100:
+            # Subtract 100 coins from him
+            self._coins -= 100
+            # Increase his health
+            self._health += 1
+
         # Update the amount in UI
-        self.ui.update_coins(value)
+        self.ui.update_coins(self._coins)

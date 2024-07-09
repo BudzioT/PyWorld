@@ -29,11 +29,17 @@ class UI:
 
         # Current amount of coins
         self.coin_amount = 0
+        # Coin surface
+        self.coin_surface = frames["coin"]
+
         # Coin duration timer
         self.coin_duration = Timer(1000)
 
     def update(self, delta_time):
         """Update the user's interface icons and text"""
+        # Update coin timer
+        self.coin_duration.update()
+
         # Update all the sprites
         self.sprites.update(delta_time)
 
@@ -58,17 +64,27 @@ class UI:
 
     def _show_text(self):
         """Show all UI texts"""
-        # Render the text
-        text_surface = self.font.render(str(self.coin_amount), False, "white")
-        # Get its rectangle, set its position to top left with a little margin
-        text_rect = text_surface.get_frect(topleft=(16, 34))
+        # Show the text, if coin timer is active
+        if self.coin_duration.active:
+            # Render the text
+            text_surface = self.font.render(str(self.coin_amount), False, "#32423D")
+            # Get its rectangle, set its position to top left with a little margin
+            text_rect = text_surface.get_frect(topleft=(16, 34))
 
-        # Blit the text
-        self.surface.blit(text_surface, text_rect)
+            # Blit the text
+            self.surface.blit(text_surface, text_rect)
+
+            # Create rectangle for displaying coin surface
+            coin_rect = self.coin_surface.get_frect(center=text_rect.bottomleft)
+            # Display the coin surface
+            self.surface.blit(self.coin_surface, coin_rect)
 
     def update_coins(self, amount):
         """Update amount of coins currently displayed"""
+        # Update the amount
         self.coin_amount = amount
+        # Activate the coins duration timer
+        self.coin_duration.start()
 
 
 class Heart(AnimatedSprite):

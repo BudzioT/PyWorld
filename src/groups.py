@@ -6,11 +6,17 @@ from src.settings import settings
 
 class Sprites(pygame.sprite.Group):
     """Group of all sprites"""
-    def __init__(self):
+    def __init__(self, level_width, level_height, bg_tile=None):
         """Initialize the sprite group"""
         super().__init__()
         # Get the main surface
         self.surface = pygame.display.get_surface()
+
+        # Get dimensions from the level in pixels
+        self.width = level_width * settings.TILE_SIZE
+        self.height = level_height * settings.TILE_SIZE
+
+        # If the level has a background, draw the background tiles
 
         # Offset of the camera
         self.offset = vector()

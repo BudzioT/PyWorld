@@ -81,7 +81,10 @@ class Game:
         # Animation frames needed for a level
         self.level_frames = {
             # General frames
+            "bg_tiles": utilities.load_folder_dict("../graphics/level/bg/tiles"),
             "flag": utilities.load_folder("../graphics/level/flag"),
+            "water_top": utilities.load_folder("../graphics/level/water/top"),
+            "water": utilities.load("../graphics/level/water/body.png"),
             "items": utilities.load_subfolders("../graphics/items"),
             "particle": utilities.load_folder("../graphics/effects/particle"),
             # Player
@@ -112,7 +115,8 @@ class Game:
 
         # Frames for user's interface
         self.ui_frames = {
-            "health": utilities.load_folder("../graphics/ui/heart")
+            "health": utilities.load_folder("../graphics/ui/heart"),
+            "coin": utilities.load("../graphics/ui/coin.png")
         }
 
 

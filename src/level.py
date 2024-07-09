@@ -22,8 +22,24 @@ class Level:
         # Store the game's data
         self.data = data
 
+        # Width of the level in pixels
+        self.width = level_map.width * settings.TILE_SIZE
+        # Bottom constraint of the level
+        self.bottom = level_map.height * settings.TILE_SIZE
+
+        # Get the level properties
+        level_properties = level_map.get_layer_by_name("Data")[0].properties
+        print(level_properties)
+
+        # If the level has background property, set it
+        if level_properties["bg"]:
+            bg_tile = level_frames["bg_tiles"][level_properties["bg"]]
+        # Otherwise set it to None
+        else:
+            bg_tile = None
+
         # All sprites group
-        self.sprites = Sprites()
+        self.sprites = Sprites(self.width, self.bottom, bg_tile)
         # Sprites that collide
         self.collision_sprites = pygame.sprite.Group()
         # Semi collision sprites
@@ -78,6 +94,9 @@ class Level:
 
         # Reflect the enemies if needed
         self._attack_collisions()
+
+        # Constraint the player if needed
+        self._check_constraints()
 
     def _initialize(self, level_map, level_frames):
         """Initialize the map"""
@@ -183,6 +202,10 @@ class Level:
                     # Create an animated sprite
                     AnimatedSprite((obj.x, obj.y), frames, groups, pos_z, animation_speed)
 
+                # If this is a flag, create finish level rectangle spot
+                if obj.name == "flag":
+                    self.finish_rect = pygame.FRect((obj.x, obj.y), (obj.width, obj.height))
+
         # Objects that can move
         for obj in level_map.get_layer_by_name("Moving Objects"):
             # Create a SpikeBall if that's the object
@@ -273,6 +296,28 @@ class Level:
             Item((item.x + settings.TILE_SIZE / 2, item.y + settings.TILE_SIZE / 2),
                  level_frames["items"][item.name], (self.sprites, self.item_sprites), item.name, self.data)
 
+        # Place the water tiles
+        for water_tile in level_map.get_layer_by_name("Water"):
+            # Calculate amount of rows and columns of water in tiles
+            rows = int(water_tile.height / settings.TILE_SIZE)
+            columns = int(water_tile.width / settings.TILE_SIZE)
+
+            # Go through each row and column
+            for row in range(rows):
+                for column in range(columns):
+                    # Calculate the position of water tile based off row and column, convert it to pixels
+                    pos_x = water_tile.x + column * settings.TILE_SIZE
+                    pos_y = water_tile.y + row * settings.TILE_SIZE
+
+                    # If it's the first row of water tiles, create water tiles with animated waves
+                    if row == 0:
+                        AnimatedSprite((pos_x, pos_y), level_frames["water_top"], self.sprites,
+                                       settings.LAYERS_DEPTH["water"])
+                    # Otherwise create plain ones
+                    else:
+                        Sprite((pos_x, pos_y), level_frames["water"], self.sprites,
+                               settings.LAYERS_DEPTH["water"])
+
     def _create_pearl(self, pos, direction):
         """Create a pearl shot by the shell"""
         Pearl(pos, self.pearl_surface, (self.sprites, self.damage_sprites, self.pearl_sprites),
@@ -331,3 +376,20 @@ class Level:
 
                 # Create a particle
                 Particle(item_collisions[0].rect.center, self.particle_frames, self.sprites)
+
+    def _check_constraints(self):
+        """Check and constraint the player movement if he goes too far off the map"""
+        # If player is behind left side of the map, move him back
+        if self.player.hitbox_rect.left <= 0:
+            self.player.hitbox_rect.left = 0
+        # Do the same for the right side
+        elif self.player.hitbox_rect.right >= self.width:
+            self.player.hitbox_rect.right = self.width
+
+        # Check if player went too far down
+        if self.player.hitbox_rect.bottom > self.bottom:
+            print("DIE")
+
+        # Check if player touched the finish flag
+        if self.player.hitbox_rect.colliderect(self.finish_rect):
+            print("SUCCESS")
