@@ -8,6 +8,7 @@ from src.sprites import Sprite, MovingSprite, AnimatedSprite
 from src.player import Player
 from src.groups import Sprites
 from src.enemies import SpikeBall
+from src.enemies import Tooth, Shell
 
 
 class Level:
@@ -25,6 +26,9 @@ class Level:
         self.semi_collision_sprites = pygame.sprite.Group()
         # Sprites that deal damage
         self.damage_sprites = pygame.sprite.Group()
+
+        # Tooth enemy sprites
+        self.tooth_sprites = pygame.sprite.Group()
 
         # Initialize the level's map
         self._initialize(level_map, level_frames)
@@ -226,3 +230,15 @@ class Level:
                             Sprite((pos_x, pos_y), level_frames["saw_chain"], self.sprites,
                                    settings.LAYERS_DEPTH["bg_details"])
 
+        # The rest of the enemies
+        for enemy in level_map.get_layer_by_name("Enemies"):
+            # Create a Tooth enemy
+            if enemy.name == "tooth":
+                Tooth((enemy.x, enemy.y), level_frames["tooth"], (self.sprites, self.damage_sprites,
+                                                                  self.tooth_sprites),
+                      self.collision_sprites)
+
+            # Create a Shell enemy
+            if enemy.name == "shell":
+                Shell((enemy.x, enemy.y), level_frames["shell"], (self.sprites, self.collision_sprites),
+                      enemy.properties["reverse"])
