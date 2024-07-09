@@ -4,11 +4,12 @@ import pygame
 from pygame.math import Vector2 as vector
 
 from src.settings import settings
-from src.sprites import Sprite, MovingSprite, AnimatedSprite
+from src.sprites import Sprite, MovingSprite, AnimatedSprite, Item
 from src.player import Player
 from src.groups import Sprites
 from src.enemies import SpikeBall
 from src.enemies import Tooth, Shell, Pearl
+from src.particle import Particle
 
 
 class Level:
@@ -31,6 +32,14 @@ class Level:
         self.tooth_sprites = pygame.sprite.Group()
         # Pearl projectiles sprites
         self.pearl_sprites = pygame.sprite.Group()
+
+        # Collectable item sprites
+        self.item_sprites = pygame.sprite.Group()
+
+        # Set the pearl surface
+        self.pearl_surface = level_frames["pearl"]
+        # Particle surfaces
+        self.particle_frames = level_frames["particle"]
 
         # Initialize the level's map
         self._initialize(level_map, level_frames)
@@ -55,6 +64,14 @@ class Level:
         """Update position of all level elements"""
         # Update all the sprites
         self.sprites.update(delta_time)
+
+        # Handle pearl collisions
+        self._pearl_collisions()
+        # Check and handle player's collision, that result in damage
+        self._damage_collisions()
+
+        # Handle item collisions
+        self._item_collisions()
 
     def _initialize(self, level_map, level_frames):
         """Initialize the map"""
@@ -243,8 +260,44 @@ class Level:
             # Create a Shell enemy
             if enemy.name == "shell":
                 Shell((enemy.x, enemy.y), level_frames["shell"], (self.sprites, self.collision_sprites),
-                      enemy.properties["reverse"], self.player)
+                      enemy.properties["reverse"], self.player, self._create_pearl)
 
-    def _create_pearl(self, pos, direction, level_frames):
+        # Spawn items
+        for item in level_map.get_layer_by_name("Items"):
+            Item((item.x + settings.TILE_SIZE / 2, item.y + settings.TILE_SIZE / 2),
+                 level_frames["items"][item.name], (self.sprites, self.item_sprites), item.name)
+
+    def _create_pearl(self, pos, direction):
         """Create a pearl shot by the shell"""
-        Pearl(pos, (self.sprites, self.damage_sprites, self.pearl_sprites), level_frames["pearl"])
+        Pearl(pos, self.pearl_surface, (self.sprites, self.damage_sprites, self.pearl_sprites),
+              200, direction)
+
+    def _pearl_collisions(self):
+        """Check and handle pearl collisions"""
+        # Check if pearl collides with any of the collide-able sprites, if so destroy it
+        for sprite in self.collision_sprites:
+            pygame.sprite.spritecollide(sprite, self.pearl_sprites, True)
+
+    def _damage_collisions(self):
+        """Check and handle player's collisions with sprites that deal damage"""
+        # Go through each of the sprites that can damage the player
+        for sprite in self.damage_sprites:
+            # If it collides with the player, handle it
+            if sprite.rect.colliderect(self.player.hitbox_rect):
+                print("DAMAGE")
+
+                # If the damage sprite was a pearl, destroy it on contact
+                if hasattr(sprite, "pearl"):
+                    sprite.kill()
+
+    def _item_collisions(self):
+        """Handle collisions with items and check them"""
+        # If there are any items
+        if self.item_sprites:
+            # Check the collisions between them and the player
+            item_collisions = pygame.sprite.spritecollide(self.player, self.item_sprites, True)
+            # If there were any, collect the item
+            if item_collisions:
+                # Create a particle
+                Particle(item_collisions[0].rect.center, self.particle_frames, self.sprites)
+                print("ITEM COLLECTED", item_collisions[0].item_type)

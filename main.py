@@ -71,6 +71,8 @@ class Game:
         self.level_frames = {
             # General frames
             "flag": utilities.load_folder("../graphics/level/flag"),
+            "items": utilities.load_subfolders("../graphics/items"),
+            "particle": utilities.load_folder("../graphics/effects/particle"),
             # Player
             "player": utilities.load_subfolders("../graphics/player"),
             # Enemies

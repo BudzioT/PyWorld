@@ -121,10 +121,16 @@ class Tooth(pygame.sprite.Sprite):
         if bottom_right_rect.collidelist(self.collision_rects) < 0 < self.direction:
             self.direction *= -1
 
+        # Get the rectangle of the Tooth, that can check if there are any walls near
+        wall_rect = pygame.FRect(self.rect.topleft + vector(-1, 0), (self.rect.width + 2, 1))
+        # Reverse enemy's direction if he touches a collide-able sprite
+        if wall_rect.collidelist(self.collision_rects) != -1:
+            self.direction *= -1
+
 
 class Shell(pygame.sprite.Sprite):
     """Shell enemy that player can stand on and it shoots him"""
-    def __init__(self, pos, frames, group, flip, player):
+    def __init__(self, pos, frames, group, flip, player, create_pearl):
         """Prepare the shell enemy"""
         super().__init__(group)
 
@@ -171,6 +177,9 @@ class Shell(pygame.sprite.Sprite):
         # Shoot flag
         self.shoot = False
 
+        # Function to create pearls
+        self.create_pearl = create_pearl
+
     def update(self, delta_time):
         """Update the shell enemy"""
         # Update the attack cooldown timer
@@ -199,8 +208,6 @@ class Shell(pygame.sprite.Sprite):
         else:
             in_front = shell_pos.x < player_pos.x
 
-        print(near, same_level, in_front)
-
         # If player is near the shell, at around the same vertical position and is in front of the shell
         if near and same_level and in_front:
             # If cooldown isn't on, attack
@@ -224,7 +231,7 @@ class Shell(pygame.sprite.Sprite):
 
             # If the shell is attacking, didn't shoot already, and it's the third frame of animation
             if self.state == "fire" and not self.shoot and int(self.frame) == 3:
-                print("SHOOT")
+                self.create_pearl(self.rect.center, self.projectile_direction)
                 # Make the shell shoot
                 self.shoot = True
 
@@ -245,13 +252,36 @@ class Pearl(pygame.sprite.Sprite):
         """Initialize the pearl projectile"""
         super().__init__(group)
 
-        # Set image of the pearl and get its rectangle, center it in the given position
-        self.image = surface
-        self.rect = self.image.get_frect(center=pos)
-
         # Speed and direction of the projectile
         self.speed = speed
         self.direction = direction
 
+        # Flag that tells, that this sprite is a pearl (for easy deletions outside the class)
+        self.pearl = True
+
+        # Set image of the pearl and get its rectangle, center it in the given position
+        self.image = surface
+        self.rect = self.image.get_frect(center=pos + vector(50 * direction, 0))
+
         # Its depth position
         self.pos_z = settings.LAYERS_DEPTH["main"]
+
+        # Shell timers
+        self.timers = {
+            "duration": Timer(5000)
+        }
+        # Activate the pearl life-time timer
+        self.timers["duration"].start()
+
+    def update(self, delta_time):
+        """Update the pearl"""
+        # Update every pearl's timer
+        for timer in self.timers.values():
+            timer.update()
+
+        # Move the pearl
+        self.rect.x += self.direction * self.speed * delta_time
+
+        # If duration of the pearl ended, destroy it
+        if not self.timers["duration"].active:
+            self.kill()

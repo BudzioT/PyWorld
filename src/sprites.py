@@ -131,3 +131,16 @@ class MovingSprite(AnimatedSprite):
                 self.rect.top = self.start_pos[1]
             # Flip the sprite vertically
             self.flip_directions['y'] = True if self.direction.y > 0 else False
+
+
+class Item(AnimatedSprite):
+    """Sprite representing an item"""
+    def __init__(self, pos, frames, group, item_type):
+        """Prepare the item"""
+        super().__init__(pos, frames, group)
+
+        # Center the item
+        self.rect.center = pos
+
+        # Get item's type
+        self.item_type = item_type
