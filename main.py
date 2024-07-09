@@ -7,6 +7,7 @@ from pytmx.util_pygame import load_pygame
 from src.settings import settings
 from src.level import Level
 from src.utilities import utilities
+from src.data import Data
 
 
 class Game:
@@ -27,11 +28,14 @@ class Game:
         # Import assets
         self._get_assets()
 
+        # Data of the game
+        self.data = Data()
+
         # Load the maps
         self.maps = {0: load_pygame(path_join(settings.BASE_PATH, "../data/levels/omni.tmx"))}
 
         # Current level
-        self.current_level = Level(self.maps[0], self.level_frames)
+        self.current_level = Level(self.maps[0], self.level_frames, self.data)
 
     def run(self):
         """Run the game"""

@@ -135,12 +135,38 @@ class MovingSprite(AnimatedSprite):
 
 class Item(AnimatedSprite):
     """Sprite representing an item"""
-    def __init__(self, pos, frames, group, item_type):
+    def __init__(self, pos, frames, group, item_type, data):
         """Prepare the item"""
         super().__init__(pos, frames, group)
+
+        # Data of the game
+        self.data = data
 
         # Center the item
         self.rect.center = pos
 
         # Get item's type
         self.item_type = item_type
+
+    def collect(self):
+        """Collect the item's boost"""
+        # If it's a silver coin, add one coin to the current amount
+        if self.item_type == "silver":
+            self.data.coins += 1
+        # If it's a golden coin, add 5 coins
+        elif self.item_type == "gold":
+            self.data.coins += 2
+        # Diamond - add 5
+        elif self.item_type == "diamond":
+            self.data.coins += 5
+        # Skull - add 20
+        elif self.item_type == "skull":
+            self.data.coins += 20
+
+        # If the item is a potion, add one more health to the player, if it hasn't exceeded 5
+        if self.item_type == "potion":
+            if self.data.health < 5:
+                self.data.health += 1
+            # If player already has maximum number of lives, give him 10 coins
+            else:
+                self.data.coins += 10

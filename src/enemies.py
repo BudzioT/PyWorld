@@ -85,8 +85,14 @@ class Tooth(pygame.sprite.Sprite):
         # Rectangles of sprites that he can collide with
         self.collision_rects = [sprite.rect for sprite in collision_sprites]
 
+        # Cooldown of getting hit
+        self.hit_timer = Timer(250)
+
     def update(self, delta_time):
         """Update the Tooth"""
+        # Update the immunity timer
+        self.hit_timer.update()
+
         # Move the Tooth
         self._move(delta_time)
 
@@ -126,6 +132,15 @@ class Tooth(pygame.sprite.Sprite):
         # Reverse enemy's direction if he touches a collide-able sprite
         if wall_rect.collidelist(self.collision_rects) != -1:
             self.direction *= -1
+
+    def reverse(self):
+        """Reverse direction of the Tooth"""
+        # If there isn't an active cooldown, change the direction
+        if not self.hit_timer.active:
+            self.direction *= -1
+
+            # Activate the cooldown
+            self.hit_timer.start()
 
 
 class Shell(pygame.sprite.Sprite):
@@ -268,7 +283,8 @@ class Pearl(pygame.sprite.Sprite):
 
         # Shell timers
         self.timers = {
-            "duration": Timer(5000)
+            "duration": Timer(5000),
+            "hit": Timer(250)
         }
         # Activate the pearl life-time timer
         self.timers["duration"].start()
@@ -285,3 +301,12 @@ class Pearl(pygame.sprite.Sprite):
         # If duration of the pearl ended, destroy it
         if not self.timers["duration"].active:
             self.kill()
+
+    def reverse(self):
+        """Reverse direction of the pearl"""
+        # If there isn't any cooldown, change the direction
+        if not self.timers["hit"].active:
+            self.direction *= -1
+
+            # Start the cooldown timer
+            self.timers["hit"].start()

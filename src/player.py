@@ -1,3 +1,5 @@
+import math
+
 import pygame
 from pygame.math import Vector2 as vector
 
@@ -8,12 +10,15 @@ from src.settings import settings
 
 class Player(pygame.sprite.Sprite):
     """The player character of the game"""
-    def __init__(self, pos, frames, group, collision_sprites, semi_collision_sprites):
+    def __init__(self, pos, frames, group, collision_sprites, semi_collision_sprites, data):
         """Initialize the player"""
         super().__init__(group)
 
         # Grab game's surface
         self.surface = pygame.display.get_surface()
+
+        # Game's data
+        self.data = data
 
         # Save the player animation frames, set the current frame
         self.frames = frames
@@ -58,7 +63,8 @@ class Player(pygame.sprite.Sprite):
             "wall_jump": Timer(500),
             "block_wall_jump": Timer(300),
             "platform_skip": Timer(100),
-            "attack": Timer(600)
+            "attack": Timer(600),
+            "hit": Timer(450)
         }
 
         # Collisions with surface that affect jumping, sliding
@@ -95,6 +101,9 @@ class Player(pygame.sprite.Sprite):
         self._update_state()
         # Animate him
         self._animate(delta_time)
+
+        # Flicker the player if he was hit
+        self._flicker()
 
     def _input(self):
         """Get player's related input"""
@@ -299,6 +308,27 @@ class Player(pygame.sprite.Sprite):
         """Update all the timers"""
         for timer in self.timers.values():
             timer.update()
+
+    def handle_damage(self):
+        """Handle getting damage"""
+        # If the hit cooldown has passed
+        if not self.timers["hit"].active:
+            # Reduce the player's health
+            self.data.health -= 1
+
+            # Start the cooldown again
+            self.timers["hit"].start()
+
+    def _flicker(self):
+        """Flicker the player's image"""
+        # If player was hit, make him flicker and if current sinus is greater than 0 (for flicker effect)
+        if self.timers["hit"].active and math.sin(pygame.time.get_ticks() / 30) >= 0:
+            # Create a white mask in the player's shape
+            mask_surface = pygame.mask.from_surface(self.image).to_surface()
+            # Hide the black borders
+            mask_surface.set_colorkey("black")
+            # Apply it to the image
+            self.image = mask_surface
 
     def _update_state(self):
         """Update the player's state"""

@@ -14,10 +14,13 @@ from src.particle import Particle
 
 class Level:
     """Level of the game"""
-    def __init__(self, level_map, level_frames):
+    def __init__(self, level_map, level_frames, data):
         """Initialize the level"""
         # Get the main surface
         self.surface = pygame.display.get_surface()
+
+        # Store the game's data
+        self.data = data
 
         # All sprites group
         self.sprites = Sprites()
@@ -72,6 +75,9 @@ class Level:
 
         # Handle item collisions
         self._item_collisions()
+
+        # Reflect the enemies if needed
+        self._attack_collisions()
 
     def _initialize(self, level_map, level_frames):
         """Initialize the map"""
@@ -130,7 +136,7 @@ class Level:
             # If this object is a player, create him
             if obj.name == "player":
                 self.player = Player((obj.x, obj.y), level_frames["player"], self.sprites,
-                                     self.collision_sprites, self.semi_collision_sprites)
+                                     self.collision_sprites, self.semi_collision_sprites, self.data)
             # Otherwise, if the object is some tile
             else:
                 # Create a barrel or a crate, which aren't animated
@@ -265,7 +271,7 @@ class Level:
         # Spawn items
         for item in level_map.get_layer_by_name("Items"):
             Item((item.x + settings.TILE_SIZE / 2, item.y + settings.TILE_SIZE / 2),
-                 level_frames["items"][item.name], (self.sprites, self.item_sprites), item.name)
+                 level_frames["items"][item.name], (self.sprites, self.item_sprites), item.name, self.data)
 
     def _create_pearl(self, pos, direction):
         """Create a pearl shot by the shell"""
@@ -276,7 +282,10 @@ class Level:
         """Check and handle pearl collisions"""
         # Check if pearl collides with any of the collide-able sprites, if so destroy it
         for sprite in self.collision_sprites:
-            pygame.sprite.spritecollide(sprite, self.pearl_sprites, True)
+            collided = pygame.sprite.spritecollide(sprite, self.pearl_sprites, True)
+            # If there were any collisions, create a particle effect
+            if collided:
+                Particle(collided[0].rect.center, self.particle_frames, self.sprites)
 
     def _damage_collisions(self):
         """Check and handle player's collisions with sprites that deal damage"""
@@ -284,11 +293,30 @@ class Level:
         for sprite in self.damage_sprites:
             # If it collides with the player, handle it
             if sprite.rect.colliderect(self.player.hitbox_rect):
-                print("DAMAGE")
+                self.player.handle_damage()
 
                 # If the damage sprite was a pearl, destroy it on contact
                 if hasattr(sprite, "pearl"):
                     sprite.kill()
+                    # Create a particle
+                    Particle(sprite.rect.center, self.particle_frames, self.sprites)
+
+    def _attack_collisions(self):
+        """Handle the attack collisions"""
+        # Go through each of the sprites that the player can reflect (pearls and Tooth enemies)
+        for target in self.pearl_sprites.sprites() + self.tooth_sprites.sprites():
+            # If player isn't flipped (is facing right)
+            if not self.player.flip:
+                # Save the facing target flag to True if the target is on the right of the player
+                facing_target = self.player.rect.centerx < target.rect.centerx
+            # Otherwise set it to True if the target is on the left
+            else:
+                facing_target = self.player.rect.centerx > target.rect.centerx
+
+            # If target collides with player, player is attacking and is facing the target
+            if target.rect.colliderect(self.player.rect) and self.player.attack and facing_target:
+                # Reverse the target
+                target.reverse()
 
     def _item_collisions(self):
         """Handle collisions with items and check them"""
@@ -298,6 +326,8 @@ class Level:
             item_collisions = pygame.sprite.spritecollide(self.player, self.item_sprites, True)
             # If there were any, collect the item
             if item_collisions:
+                # Add proper boost
+                item_collisions[0].collect()
+
                 # Create a particle
                 Particle(item_collisions[0].rect.center, self.particle_frames, self.sprites)
-                print("ITEM COLLECTED", item_collisions[0].item_type)
