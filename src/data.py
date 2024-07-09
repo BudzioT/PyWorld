@@ -10,6 +10,11 @@ class Data:
         # Player's amount of lives
         self._health = 5
 
+        # Current level
+        self.level = 0
+        # The highest unlocked level
+        self.max_level = 3
+
         # Create starting hearts
         self.ui.create_hearts(self._health)
 

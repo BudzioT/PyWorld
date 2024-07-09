@@ -196,3 +196,45 @@ class Cloud(Sprite):
         # If cloud behind the left border of the game, delete it
         if self.rect.right <= 0:
             self.kill()
+
+
+class Node(pygame.sprite.Sprite):
+    """Class representing a node in the overworld"""
+    def __init__(self, pos, surface, group, level, data):
+        """Initialize the node"""
+        super().__init__(group)
+        # Get the image
+        self.image = surface
+        # Get surface's rectangle, set it to the center tile position from the given one
+        self.rect = self.image.get_frect(center=(pos[0] + settings.TILE_SIZE / 2,
+                                                 pos[1] + settings.TILE_SIZE / 2))
+        # Set the depth position as path
+        self.pos_z = settings.LAYERS_DEPTH["path"]
+
+        # Game's data
+        self.data = data
+
+        # Save the node's level
+        self.level = level
+
+
+class Icon(pygame.sprite.Sprite):
+    """Icon on the overworld map"""
+    def __init__(self, pos, frames, group):
+        """Initialize the icon"""
+        super().__init__(group)
+
+        # Store the frames and the current one
+        self.frames = frames
+        self.frame = 0
+        # Current icon's state
+        self.state = "idle"
+
+        # Depth position
+        self.pos_z = settings.LAYERS_DEPTH["main"]
+
+        # Set the image from the current state and frame
+        self.image = self.frames[self.state][self.frame]
+
+        # Get the rectangle and center in the given position
+        self.rect = self.image.get_frect(center=pos)

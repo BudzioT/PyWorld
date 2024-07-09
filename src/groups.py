@@ -182,3 +182,45 @@ class Sprites(pygame.sprite.Group):
 
         # Create a cloud with this information
         Cloud(pos, surface, self)
+
+
+class WorldSprites(pygame.sprite.Group):
+    """Sprites that appear in the overworld"""
+    def __init__(self, data):
+        """Initialize the overworld sprites"""
+        super().__init__()
+
+        # Get game's surface
+        self.surface = pygame.display.get_surface()
+
+        # Save data
+        self.data = data
+
+        # Create a camera offset vector
+        self.offset = vector()
+
+    def draw(self, pos):
+        """Draw all the overworld sprites in group"""
+        # Calculate offset based off the target position
+        self.offset.x = -(pos[0] - settings.WINDOW_WIDTH / 2)
+        self.offset.y = -(pos[1] - settings.WINDOW_HEIGHT / 2)
+
+        # Go through each sprite sorted by depth value and draw the background
+        for sprite in sorted(self, key=lambda element: element.pos_z):
+            # Offset of sprites
+            offset_pos = sprite.rect.topleft + self.offset
+
+            # If given sprite is more in the background then the main objects, draw them
+            if sprite.pos_z < settings.LAYERS_DEPTH["main"]:
+                # If sprite depth is a path one
+                if sprite.pos_z == settings.LAYERS_DEPTH["path"]:
+                    # If the current level is unlocked, display the node
+                    if sprite.level <= self.data.max_level:
+                        self.surface.blit(sprite.image, offset_pos)
+                # Draw the overworld sprite
+                else:
+                    self.surface.blit(sprite.image, offset_pos)
+
+        # Check all the main objects and draw them in order based off vertical position
+        for sprite in sorted(self, key=lambda element: element.rect.centery):
+            

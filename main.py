@@ -119,7 +119,9 @@ class Game:
         # Frames for overworld map
         self.overworld_frames = {
             # General frames
+            "icon": utilities.load_subfolders("../graphics/overworld/icon"),
             "water": utilities.load_folder("../graphics/overworld/water"),
+            "path": utilities.load_folder_dict("../graphics/overworld/path"),
             # Other objects frames
             "palm": utilities.load_folder("../graphics/overworld/palm")
         }
