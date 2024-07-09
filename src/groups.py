@@ -223,4 +223,13 @@ class WorldSprites(pygame.sprite.Group):
 
         # Check all the main objects and draw them in order based off vertical position
         for sprite in sorted(self, key=lambda element: element.rect.centery):
-            
+            if sprite.pos_z == settings.LAYERS_DEPTH["main"]:
+                # Offset of the main sprite
+                offset_pos = sprite.rect.topleft + self.offset
+
+                # If it's an icon, place it a little higher
+                if hasattr(sprite, "icon"):
+                    self.surface.blit(sprite.image, offset_pos + vector(0, -25))
+                # Otherwise, remain the position
+                else:
+                    self.surface.blit(sprite.image, offset_pos)

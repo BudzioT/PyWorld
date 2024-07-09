@@ -200,7 +200,7 @@ class Cloud(Sprite):
 
 class Node(pygame.sprite.Sprite):
     """Class representing a node in the overworld"""
-    def __init__(self, pos, surface, group, level, data):
+    def __init__(self, pos, surface, group, level, data, paths):
         """Initialize the node"""
         super().__init__(group)
         # Get the image
@@ -216,6 +216,14 @@ class Node(pygame.sprite.Sprite):
 
         # Save the node's level
         self.level = level
+        # Paths to the node
+        self.paths = paths
+
+    def can_move(self, direction):
+        """Return if the node has an available path in the given direction"""
+        if direction in list(self.paths.keys()):
+            return True
+        return False
 
 
 class Icon(pygame.sprite.Sprite):
@@ -224,17 +232,81 @@ class Icon(pygame.sprite.Sprite):
         """Initialize the icon"""
         super().__init__(group)
 
+        # Icon flag
+        self.icon = True
+
         # Store the frames and the current one
         self.frames = frames
         self.frame = 0
         # Current icon's state
         self.state = "idle"
 
-        # Depth position
+        # Path the player's on
+        self.path = None
+
+        # Direction of the player's movement
+        self.direction = vector()
+        # His depth position
         self.pos_z = settings.LAYERS_DEPTH["main"]
+
+        # Speed
+        self.speed = 400
 
         # Set the image from the current state and frame
         self.image = self.frames[self.state][self.frame]
 
         # Get the rectangle and center in the given position
         self.rect = self.image.get_frect(center=pos)
+
+    def move(self, path):
+        """Move the player through the given path"""
+        # Center the player on the first point of the path
+        self.rect.center = path[0]
+
+        # Copy the rest of the path points
+        self.path = path[1:]
+
+        # Find the path
+        (self._find_path())
+
+    def _find_path(self):
+        """Find and move the player through the current path"""
+        # If there is a path, handle the movement
+        if self.path:
+            print(self.path)
+            # If the player's horizontal position is equal to the first point's horizontal position,
+            # move vertically
+            if self.rect.centerx == self.path[0][0]:
+                # Move the player down if the path goes down, or up if it goes up
+                self.direction = vector(0, 1 if self.path[0][1] > self.rect.centery else -1)
+
+            # Otherwise move horizontally
+            else:
+                # Go in the direction of the path
+                self.direction = vector(1 if self.path[0][0] > self.rect.centerx else -1, 0)
+
+        # If there isn't any path, stay in place
+        else:
+            self.direction = vector()
+
+    def update(self, delta_time):
+        """Update the player"""
+        # If there is a path that player's on, move him
+        if self.path:
+            # Check collisions with point and find a new path if needed
+            self._point_collisions()
+
+            # Move the player
+            self.rect.center += self.direction * self.speed * delta_time
+
+    def _point_collisions(self):
+        """Check and handle collisions with path points"""
+        # If player is moving down, and he moves to the end of the path
+        if self.direction.y == 1 and self.rect.centery >= self.path[0][1]:
+            # Center him at the end of it
+            self.rect.centery = self.path[0][1]
+            # Delete the path he was on
+            del self.path[0]
+
+            # Find the next path
+            self._find_path()
