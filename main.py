@@ -107,7 +107,9 @@ class Game:
             "big_chain": utilities.load_folder("../graphics/level/big_chains"),
             "small_chain": utilities.load_folder("../graphics/level/small_chains"),
             "saw_chain": utilities.load("../graphics/enemies/saw/saw_chain.png"),
-            "spike_chain": utilities.load("../graphics/enemies/spike_ball/spiked_chain.png")
+            "spike_chain": utilities.load("../graphics/enemies/spike_ball/spiked_chain.png"),
+            "small_cloud": utilities.load_folder("../graphics/level/clouds/small"),
+            "large_cloud": utilities.load("../graphics/level/clouds/large_cloud.png")
         }
 
         # Create game's font with a size of 40

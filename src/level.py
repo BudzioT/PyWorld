@@ -29,7 +29,6 @@ class Level:
 
         # Get the level properties
         level_properties = level_map.get_layer_by_name("Data")[0].properties
-        print(level_properties)
 
         # If the level has background property, set it
         if level_properties["bg"]:
@@ -39,7 +38,9 @@ class Level:
             bg_tile = None
 
         # All sprites group
-        self.sprites = Sprites(self.width, self.bottom, bg_tile)
+        self.sprites = Sprites(self.width, self.bottom,
+                               {"small": level_frames["small_cloud"], "large": level_frames["large_cloud"]},
+                               level_properties["horizon_line"], bg_tile, level_properties["top_limit"])
         # Sprites that collide
         self.collision_sprites = pygame.sprite.Group()
         # Semi collision sprites
