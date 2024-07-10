@@ -10,7 +10,8 @@ from src.settings import settings
 
 class Player(pygame.sprite.Sprite):
     """The player character of the game"""
-    def __init__(self, pos, frames, group, collision_sprites, semi_collision_sprites, data):
+    def __init__(self, pos, frames, group, collision_sprites, semi_collision_sprites, data,
+                 attack_sound, jump_sound):
         """Initialize the player"""
         super().__init__(group)
 
@@ -77,6 +78,14 @@ class Player(pygame.sprite.Sprite):
 
         # Platform that player's on
         self.platform = None
+
+        # Get the sound effects
+        self.attack_sound = attack_sound
+        self.jump_sound = jump_sound
+
+        # Lower volumes
+        self.attack_sound.set_volume(0.3)
+        self.jump_sound.set_volume(0.1)
 
     def update(self, delta_time):
         """Update the player"""
@@ -171,6 +180,8 @@ class Player(pygame.sprite.Sprite):
             # If player has down collision, meaning he is standing on something, allow him to jump
             if self.collisions["down"]:
                 self.direction.y = -self.jump_power
+                # Play jump sound
+                self.jump_sound.play()
 
                 # Start the timer to bloc him from wall jumping
                 self.timers["block_wall_jump"].start()
@@ -182,6 +193,8 @@ class Player(pygame.sprite.Sprite):
                   and not self.timers["block_wall_jump"].active):
                 # Start the wall jump timer
                 self.timers["wall_jump"].start()
+                # Play jump sound
+                self.jump_sound.play()
 
                 # Increase player's direction to the top, save it to the rectangle
                 self.direction.y = -self.jump_power
@@ -294,6 +307,9 @@ class Player(pygame.sprite.Sprite):
             self.attack = True
             # Set the frame to the first one
             self.frame = 0
+
+            # Play the attack sound
+            self.attack_sound.play()
 
             # Activate the attack cooldown
             self.timers["attack"].start()

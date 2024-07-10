@@ -354,3 +354,13 @@ class Icon(pygame.sprite.Sprite):
         self.frame += settings.ANIMATION_SPEED * delta_time
         # Change the image depending on the current state
         self.image = self.frames[self.state][int(self.frame % len(self.frames[self.state]))]
+
+
+class PathSprite(Sprite):
+    """Sprite representing path"""
+    def __init__(self, pos, surface, group, level):
+        """Initialize the path"""
+        super().__init__(pos, surface, group, settings.LAYERS_DEPTH["path"])
+
+        # Store the level
+        self.level = level

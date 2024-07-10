@@ -37,13 +37,31 @@ class Game:
         self.data = Data(self.ui)
 
         # Load the maps
-        self.maps = {0: load_pygame(path_join(settings.BASE_PATH, "../data/levels/omni.tmx"))}
+        self.maps = {
+            0: load_pygame(path_join(settings.BASE_PATH, "../data/levels/0.tmx")),
+            1: load_pygame(path_join(settings.BASE_PATH, "../data/levels/1.tmx")),
+            2: load_pygame(path_join(settings.BASE_PATH, "../data/levels/2.tmx")),
+            3: load_pygame(path_join(settings.BASE_PATH, "../data/levels/3.tmx")),
+            4: load_pygame(path_join(settings.BASE_PATH, "../data/levels/4.tmx")),
+            5: load_pygame(path_join(settings.BASE_PATH, "../data/levels/5.tmx"))
+        }
+
+        # Load the sounds
+        self.sounds = {
+            "coin": pygame.mixer.Sound(path_join(settings.BASE_PATH, "../audio/coin.wav")),
+            "attack": pygame.mixer.Sound(path_join(settings.BASE_PATH, "../audio/attack.wav")),
+            "damage": pygame.mixer.Sound(path_join(settings.BASE_PATH, "../audio/damage.wav")),
+            "pearl": pygame.mixer.Sound(path_join(settings.BASE_PATH, "../audio/pearl.wav")),
+            "jump": pygame.mixer.Sound(path_join(settings.BASE_PATH, "../audio/jump.wav")),
+        }
+
         # Load the over-world map
         self.overworld_map = load_pygame(path_join(settings.BASE_PATH, "../data/overworld/overworld.tmx"))
 
         # Current level
-        # self.current_level = Level(self.maps[0], self.level_frames, self.data)
-        self.current_level = OverWorld(self.overworld_map, self.data, self.overworld_frames)
+        self.current_level = Level(self.maps[self.data.level], self.level_frames, self.data, self._switch_level,
+                                   self.sounds)
+        # self.current_level = OverWorld(self.overworld_map, self.data, self.overworld_frames)
 
     def run(self):
         """Run the game"""
@@ -54,6 +72,9 @@ class Game:
 
             # Handle events
             self._get_events()
+
+            # Check for game over and handle it
+            self._game_over()
 
             # Run the level
             self.current_level.run(delta_time)
@@ -79,6 +100,33 @@ class Game:
 
         # Update the surface
         pygame.display.update()
+
+    def _switch_level(self, target, unlocked=0):
+        """Switch between the level and the overworld"""
+        # If target is level, let the player go to it
+        if target == "level":
+            self.current_level = Level(self.maps[self.data.level], self.level_frames, self.data,
+                                       self._switch_level, self.sounds)
+
+        # If target is overworld, go to it
+        else:
+            # If user completed the level, unlock new one
+            if unlocked > 0:
+                self.data.max_level = unlocked
+            # Otherwise lose health
+            else:
+                self.data.health -= 1
+
+            # Go to the overworld
+            self.current_level = OverWorld(self.overworld_map, self.data, self.overworld_frames,
+                                           self._switch_level)
+
+    def _game_over(self):
+        """Check and handle game over"""
+        # If player doesn't have any health left, exit the game
+        if self.data.health <= 0:
+            pygame.quit()
+            sys.exit()
 
     def _get_assets(self):
         """Load and store the assets"""

@@ -14,13 +14,16 @@ from src.particle import Particle
 
 class Level:
     """Level of the game"""
-    def __init__(self, level_map, level_frames, data):
+    def __init__(self, level_map, level_frames, data, switch, sounds):
         """Initialize the level"""
         # Get the main surface
         self.surface = pygame.display.get_surface()
 
         # Store the game's data
         self.data = data
+
+        # Store the switch to overworld function
+        self.switch = switch
 
         # Width of the level in pixels
         self.width = level_map.width * settings.TILE_SIZE
@@ -29,6 +32,9 @@ class Level:
 
         # Get the level properties
         level_properties = level_map.get_layer_by_name("Data")[0].properties
+
+        # Level which is unlocked after this one
+        self.level_unlock = level_properties["level_unlock"]
 
         # If the level has background property, set it
         if level_properties["bg"]:
@@ -62,7 +68,17 @@ class Level:
         self.particle_frames = level_frames["particle"]
 
         # Initialize the level's map
-        self._initialize(level_map, level_frames)
+        self._initialize(level_map, level_frames, sounds)
+
+        # Get the sounds
+        self.coin_sound = sounds["coin"]
+        self.damage_sound = sounds["damage"]
+        self.pearl_sound = sounds["pearl"]
+
+        # Lower the volumes
+        self.coin_sound.set_volume(0.3)
+        self.damage_sound.set_volume(0.4)
+        self.pearl_sound.set_volume(0.4)
 
     def run(self, delta_time):
         """Run the level"""
@@ -99,7 +115,7 @@ class Level:
         # Constraint the player if needed
         self._check_constraints()
 
-    def _initialize(self, level_map, level_frames):
+    def _initialize(self, level_map, level_frames, sounds):
         """Initialize the map"""
 
         # Go through each layer and import it
@@ -156,7 +172,8 @@ class Level:
             # If this object is a player, create him
             if obj.name == "player":
                 self.player = Player((obj.x, obj.y), level_frames["player"], self.sprites,
-                                     self.collision_sprites, self.semi_collision_sprites, self.data)
+                                     self.collision_sprites, self.semi_collision_sprites, self.data,
+                                     sounds["attack"], sounds["jump"])
             # Otherwise, if the object is some tile
             else:
                 # Create a barrel or a crate, which aren't animated
@@ -323,6 +340,8 @@ class Level:
         """Create a pearl shot by the shell"""
         Pearl(pos, self.pearl_surface, (self.sprites, self.damage_sprites, self.pearl_sprites),
               200, direction)
+        # Play the pearl sound
+        self.pearl_sound.play()
 
     def _pearl_collisions(self):
         """Check and handle pearl collisions"""
@@ -340,6 +359,8 @@ class Level:
             # If it collides with the player, handle it
             if sprite.rect.colliderect(self.player.hitbox_rect):
                 self.player.handle_damage()
+                # Play the sound
+                self.damage_sound.play()
 
                 # If the damage sprite was a pearl, destroy it on contact
                 if hasattr(sprite, "pearl"):
@@ -374,6 +395,8 @@ class Level:
             if item_collisions:
                 # Add proper boost
                 item_collisions[0].collect()
+                # Play the coin sound
+                self.coin_sound.play()
 
                 # Create a particle
                 Particle(item_collisions[0].rect.center, self.particle_frames, self.sprites)
@@ -389,8 +412,8 @@ class Level:
 
         # Check if player went too far down
         if self.player.hitbox_rect.bottom > self.bottom:
-            print("DIE")
+            self.switch("overworld", -1)
 
         # Check if player touched the finish flag
         if self.player.hitbox_rect.colliderect(self.finish_rect):
-            print("SUCCESS")
+            self.switch("overworld", self.level_unlock)

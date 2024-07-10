@@ -4,19 +4,22 @@ import pygame
 from pygame.math import Vector2 as vector
 
 from src.settings import settings
-from src.sprites import Sprite, AnimatedSprite, Node, Icon
+from src.sprites import Sprite, AnimatedSprite, Node, Icon, PathSprite
 from src.groups import WorldSprites
 
 
 class OverWorld:
     """Class representing game's overworld map"""
-    def __init__(self, overworld_map, data, frames):
+    def __init__(self, overworld_map, data, frames, switch):
         """Initialize the overworld"""
         # Get game's surface
         self.surface = pygame.display.get_surface()
 
         # Save the game's data
         self.data = data
+
+        # Function to switch to a level
+        self.switch = switch
 
         # All sprites
         self.sprites = WorldSprites(data)
@@ -28,6 +31,11 @@ class OverWorld:
 
         # Current node the player's on (initialized to 0)
         self.node = [node for node in self.node_sprites if node.level == 0][0]
+
+        # Get path frames
+        self.path_frames = frames["path"]
+        # Create paths
+        self._create_path()
 
     def _initialize(self, overworld_map, frames):
         """Initialize and create the overworld map"""
@@ -139,6 +147,11 @@ class OverWorld:
             if (keys[pygame.K_RIGHT] or keys[pygame.K_d]) and self.node.can_move("right"):
                 self._move_player("right")
 
+            # On SPACE or RETURN, go to the level and store the last level
+            if keys[pygame.K_SPACE] or keys[pygame.K_RETURN]:
+                self.data.level = self.node.level
+                self.switch("level")
+
     def _move_player(self, direction):
         """Move the player in the overworld"""
         # Get the path's key, change it to int (it's a string)
@@ -202,7 +215,7 @@ class OverWorld:
                         direction_y = 1 if path_direction.y > 0 else - 1
 
                         # Go through every next vertical tile in the current path
-                        for pos_y in range(direction_y, int(path_direction) + direction_y, direction_y):
+                        for pos_y in range(direction_y, int(path_direction.y) + direction_y, direction_y):
                             # Append the tile to the dictionary
                             path_tiles[path_id].append(start_tile + vector(0, pos_y))
 
@@ -219,4 +232,44 @@ class OverWorld:
 
         # Go through each path tile that was created
         for path_id, path in path_tiles.items():
-            # Create a path sprite
+            # Check and place every path tile
+            for index, tile in enumerate(path):
+                # Ignore the first and last tile
+                if 0 < index < len(path) - 1:
+                    # Get the previous and next tile
+                    previous_tile = path[index - 1] - tile
+                    next_tile = path[index + 1] - tile
+
+                    # If previous tile and next are on the vertical axes, give the proper surface
+                    if previous_tile.x == next_tile.x:
+                        surface = self.path_frames["vertical"]
+
+                    # If they are horizontal, place the horizontal path
+                    elif previous_tile.y == next_tile.y:
+                        surface = self.path_frames["horizontal"]
+
+                    # Otherwise there is a corner
+                    else:
+                        # Create a top left corner tile if needed
+                        if (previous_tile.x == -1 and next_tile.y == -1
+                                or previous_tile.y == -1 and next_tile.x == -1):
+                            surface = self.path_frames["tl"]
+                        # Create a bottom right one
+                        elif (previous_tile.x == 1 and next_tile.y == 1
+                              or previous_tile.y == 1 and next_tile.x == 1):
+                            surface = self.path_frames["br"]
+                        # Bottom left
+                        elif (previous_tile.x == -1 and next_tile.y == 1
+                              or previous_tile.y == 1 and next_tile.x == -1):
+                            surface = self.path_frames["bl"]
+                        # Top right
+                        elif (previous_tile.x == 1 and next_tile.y == -1
+                              or previous_tile.y == -1 and next_tile.x == 1):
+                            surface = self.path_frames["tr"]
+                        # Otherwise, create placeholder horizontal tile, something went wrong
+                        else:
+                            surface = self.path_frames["horizontal"]
+
+                    # Create the tile
+                    PathSprite((tile.x * settings.TILE_SIZE, tile.y * settings.TILE_SIZE), surface,
+                               self.sprites, path_id)
