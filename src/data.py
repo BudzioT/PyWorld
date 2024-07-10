@@ -13,7 +13,7 @@ class Data:
         # Current level
         self.level = 0
         # The highest unlocked level
-        self.max_level = 3
+        self.max_level = 0
 
         # Create starting hearts
         self.ui.create_hearts(self._health)
