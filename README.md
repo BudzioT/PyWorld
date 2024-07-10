@@ -23,6 +23,7 @@ GAME:
 - Movement: WASD or arrows
 - Jump: W, Up Arrow or Space
 - Go into a level: Space
+- Attack: K or X
 
 ## :page_facing_up: Links to modules
 - Pygame: https://www.pygame.org/news
