@@ -1,6 +1,7 @@
 import random
 
 import pygame
+from pygame.math import Vector2 as vector
 
 from src.settings import settings
 from src.sprites import Sprite, AnimatedSprite, Node, Icon
@@ -106,6 +107,9 @@ class OverWorld:
 
     def _update_positions(self, delta_time):
         """Update positions of the game elements"""
+        # Get and change the current node
+        self._change_node()
+
         # Update all sprites
         self.sprites.update(delta_time)
 
@@ -119,11 +123,21 @@ class OverWorld:
         # Get the pressed keys
         keys = pygame.key.get_pressed()
 
-        # If there is a current node
-        if self.node:
+        # If there is a current node and player isn't on the path already
+        if self.node and not self.icon.path:
             # If user pressed down and node has a path down
             if (keys[pygame.K_DOWN] or keys[pygame.K_s]) and self.node.can_move("down"):
                 self._move_player("down")
+            # If user pressed up, move him that way if possible
+            if (keys[pygame.K_UP] or keys[pygame.K_w]) and self.node.can_move("up"):
+                self._move_player("up")
+
+            # Handle left movement
+            if (keys[pygame.K_LEFT] or keys[pygame.K_a]) and self.node.can_move("left"):
+                self._move_player("left")
+            # Right movement
+            if (keys[pygame.K_RIGHT] or keys[pygame.K_d]) and self.node.can_move("right"):
+                self._move_player("right")
 
     def _move_player(self, direction):
         """Move the player in the overworld"""
@@ -141,3 +155,68 @@ class OverWorld:
 
         # Finally move the player through the generated path
         self.icon.move(path)
+
+    def _change_node(self):
+        """Change the node of the player to the one he's on"""
+        # All nodes player collides with
+        nodes = pygame.sprite.spritecollide(self.icon, self.node_sprites, False)
+
+        # If there were any collided nodes
+        if nodes:
+            # Set the player to the one he's on
+            self.node = nodes[0]
+
+    def _create_path(self):
+        """Create the paths"""
+        # Get the nodes in tiles (grid positions)
+        nodes = {node.level: vector(node.grid_pos) for node in self.node_sprites}
+        path_tiles = {}
+
+        # Go through each path
+        for path_id, data in self.paths.items():
+            # Get the position of path
+            path_pos = data["pos"]
+            # Get the start node from it, save the current path node in the end node too
+            start_node = nodes[data["start"]]
+            end_node = nodes[path_id]
+
+            # Save the first path
+            path_tiles[path_id] = [start_node]
+
+            # Go through each path position
+            for index, points in enumerate(path_pos):
+                # If current path has a start and end point
+                if index < len(path_pos) - 1:
+                    # Get them
+                    start = vector(points)
+                    end = vector(path_pos[index + 1])
+
+                    # Get direction of the path, convert it to tiles
+                    path_direction = (end - start) / settings.TILE_SIZE
+                    # Save the starting tile
+                    start_tile = vector(int(start[0] / settings.TILE_SIZE), int(start[1] / settings.TILE_SIZE))
+
+                    # If there is vertical direction
+                    if path_direction.y:
+                        # Check if the path goes up or down
+                        direction_y = 1 if path_direction.y > 0 else - 1
+
+                        # Go through every next vertical tile in the current path
+                        for pos_y in range(direction_y, int(path_direction) + direction_y, direction_y):
+                            # Append the tile to the dictionary
+                            path_tiles[path_id].append(start_tile + vector(0, pos_y))
+
+                    # Otherwise, if there is a horizontal direction
+                    if path_direction.x:
+                        # Check if it goes left or right
+                        direction_x = 1 if path_direction.x > 0 else -1
+
+                        # Check every next horizontal tile and append it to the path tiles dictionary
+                        for pos_x in range(direction_x, int(path_direction.x) + direction_x, direction_x):
+                            path_tiles[path_id].append(start_tile + vector(pos_x, 0))
+            # Append the end node
+            path_tiles[path_id].append(end_node)
+
+        # Go through each path tile that was created
+        for path_id, path in path_tiles.items():
+            # Create a path sprite

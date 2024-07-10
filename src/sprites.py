@@ -219,9 +219,12 @@ class Node(pygame.sprite.Sprite):
         # Paths to the node
         self.paths = paths
 
+        # Grid position of the node
+        self.grid_pos = (int(pos[0] / settings.TILE_SIZE), int(pos[1] / settings.TILE_SIZE))
+
     def can_move(self, direction):
-        """Return if the node has an available path in the given direction"""
-        if direction in list(self.paths.keys()):
+        """Return if the node has an available path in the given direction, and has unlocked this level"""
+        if direction in list(self.paths.keys()) and int(self.paths[direction][0][0]) <= self.data.max_level:
             return True
         return False
 
@@ -273,7 +276,6 @@ class Icon(pygame.sprite.Sprite):
         """Find and move the player through the current path"""
         # If there is a path, handle the movement
         if self.path:
-            print(self.path)
             # If the player's horizontal position is equal to the first point's horizontal position,
             # move vertically
             if self.rect.centerx == self.path[0][0]:
@@ -299,10 +301,16 @@ class Icon(pygame.sprite.Sprite):
             # Move the player
             self.rect.center += self.direction * self.speed * delta_time
 
+        # Update state of the player
+        self._set_state()
+        # Animate him
+        self._animate(delta_time)
+
     def _point_collisions(self):
         """Check and handle collisions with path points"""
-        # If player is moving down, and he moves to the end of the path
-        if self.direction.y == 1 and self.rect.centery >= self.path[0][1]:
+        # If player is moving down or up, and he moves to the end of the path
+        if ((self.direction.y == 1 and self.rect.centery >= self.path[0][1]) or
+                self.direction.y == -1 and self.rect.centery <= self.path[0][1]):
             # Center him at the end of it
             self.rect.centery = self.path[0][1]
             # Delete the path he was on
@@ -310,3 +318,39 @@ class Icon(pygame.sprite.Sprite):
 
             # Find the next path
             self._find_path()
+
+        # If player is moving left or right and is on the end of the path
+        if ((self.direction.x == 1 and self.rect.centerx >= self.path[0][0]) or
+                (self.direction.x == -1 and self.rect.centerx <= self.path[0][0])):
+            # Center his position at the end of the path
+            self.rect.centerx = self.path[0][0]
+            # Delete this path
+            del self.path[0]
+
+            # Find a new one
+            self._find_path()
+
+    def _set_state(self):
+        """Set state of the player"""
+        # Begin with idle state
+        self.state = "idle"
+
+        # If player is moving left, change his state accordingly
+        if self.direction == vector(-1, 0):
+            self.state = "left"
+        # Animate going right
+        elif self.direction == vector(1, 0):
+            self.state = "right"
+        # Animate up movement
+        elif self.direction == vector(0, -1):
+            self.state = "up"
+        # Animate going down
+        elif self.direction == vector(0, 1):
+            self.state = "down"
+
+    def _animate(self, delta_time):
+        """Animate the icon"""
+        # Move the frame
+        self.frame += settings.ANIMATION_SPEED * delta_time
+        # Change the image depending on the current state
+        self.image = self.frames[self.state][int(self.frame % len(self.frames[self.state]))]
